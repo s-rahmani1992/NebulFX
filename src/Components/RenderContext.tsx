@@ -1,35 +1,67 @@
 import { useEffect, useRef } from "react";
+import type ParticleEngine from "../Rendering/ParticleEngine";
 
-export default function RenderContext() {
-    useEffect(() => {
-  // --- 1. Setup (runs once) ---
+export default function RenderContext({ engine }: { engine: ParticleEngine }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const targetFps = 60;
+  const frameDuration = 1000 / targetFps; // 60 FPS
+  const lastFrameTimeRef = useRef<number>(performance.now());
+  let dt = 0;
 
-  let running = true;
+  useEffect(() => {
+    console.log("Render Context UseEffect called");
+    // --- 1. Setup (runs once) ---
+    const Run = async () => {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        console.error("Canvas element not found");
+        return;
+      }
+      const error = { message: "" };
 
-  // --- 2. infinite loop ---
-  function Render() {
-    if (!running) return;
+      if (!await engine.Initialize(canvas,error)) {
+        console.error("Failed to initialize particle engine: " + error.message);
+        return;
+      }
 
-    requestAnimationFrame(Render);
-  }
+      // --- 2. infinite loop ---
 
-  // Start the loop once
-  requestAnimationFrame(Render);
+      let running = true;
 
-  // --- 3. Cleanup (runs on unmount) ---
-  return () => {
-    running = false;
-  };
-}, []);
+      function Render() {
+        if (!running) return;
+
+        while(performance.now() - lastFrameTimeRef.current < frameDuration) {
+        }
+
+        dt = (performance.now() - lastFrameTimeRef.current)/1000;
+
+        engine.Update(dt);
+        engine.Render();
+
+        lastFrameTimeRef.current = performance.now();
+        
+        requestAnimationFrame(Render);
+      }
+
+      // Start the loop once
+      requestAnimationFrame(Render);
     
-    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+      // --- 3. Cleanup (runs on unmount) ---
+      return () => {
+        running = false;
+      };
+    };
+
+    Run();
+  }, [engine]);
     
   return (
     <canvas className="border-2 border-gray-300 rounded-lg shadow-lg"
       ref={canvasRef}
       id="webgpu-canvas"
-      width={400}
-      height={400}
+      width={500}
+      height={500}
     />
   )
 }

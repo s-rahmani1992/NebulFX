@@ -1,8 +1,19 @@
+import { useRef } from 'react';
+
 import packageJson from '../package.json';
 import RenderContext from './Components/RenderContext'
+
+import ParticleEngine from './Rendering/ParticleEngine';
+import WebGPUParticleEngine from './Rendering/WebGPU/WebGPUParticleEngine';
+
 import './index.css'
 
 function App() {
+  const particleEngineRef = useRef<ParticleEngine | null>(null);
+
+  if (!particleEngineRef.current) {
+    particleEngineRef.current = new WebGPUParticleEngine();
+  }
 
   return (
     <>
@@ -15,7 +26,7 @@ function App() {
           <p className="text-gray-300 mt-4 align text-2xl">Particle Control Panel</p>
         </div>
         <div className="p-10">
-            <RenderContext/>
+            <RenderContext engine={particleEngineRef.current}/>
         </div>
       </div>
     </>
