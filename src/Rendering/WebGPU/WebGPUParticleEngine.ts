@@ -3,6 +3,9 @@ import ParticleEngine from "../ParticleEngine";
 import particleRasterizationProgramWGSL from "./Shaders/particle.raster.wgsl?raw";
 
 import {Vertex2D, Vector2} from "../Vertices"
+import {ParticleData} from "../Particles"
+import { ComputePipeline } from "./ComputePipeline";
+import particleResetComputeProgramWGSL from "./Shaders/particle_reset.compute.wgsl?raw";
 
 export default class WebGPUParticleEngine extends ParticleEngine {
 
@@ -51,15 +54,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     }
 
     Update(deltaTime: number): void {
-        this.m_cValue += 0.5 * this.m_sign * deltaTime;
-        if (this.m_cValue > 1) {
-            this.m_cValue = 1;
-            this.m_sign = -1;
-        } else if (this.m_cValue < 0) {
-            this.m_cValue = 0;
-            this.m_sign = 1;
-        }
-        this.m_color = { r: this.m_cValue, g: this.m_cValue, b: 1 - this.m_cValue, a: 1 };
+        // Update particle data
     }
 
     Render(): void {
@@ -78,7 +73,8 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         pass.setPipeline(this.m_particleRasterizationPipeline);
         pass.setVertexBuffer(0, this.m_particleVertexBuffer);
         pass.setIndexBuffer(this.m_particleIndexBuffer, "uint16");
-        pass.drawIndexed(6, 4, 0, 0, 0);
+        pass.setBindGroup(0, this.m_particleBindGroup);
+        pass.drawIndexed(6, this.m_maxParticles, 0, 0, 0);
 
         pass.end();
         this.m_gpuDevice.queue.submit([commandEncoder.finish()]);
@@ -158,6 +154,12 @@ export default class WebGPUParticleEngine extends ParticleEngine {
             error.message = "Failed to create render pipeline: " + (e instanceof Error ? e.message : String(e));
             return false;
         }
+        this.m_computePipeline = new ComputePipeline(this.m_gpuDevice);
+
+        const success = await this.m_computePipeline.Initialize(particleResetComputeProgramWGSL, error);
+        if (!success) {
+            return false;
+        }
 
         return true;
     }
@@ -184,6 +186,40 @@ export default class WebGPUParticleEngine extends ParticleEngine {
             usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
         });
         this.m_gpuDevice.queue.writeBuffer(this.m_particleIndexBuffer, 0, new Uint16Array(indices));
+
+        this.m_particleBuffer = this.m_gpuDevice.createBuffer({
+            size: this.m_maxParticles * 48, // Struct size must be multiple of 16: 44 data + 4 padding
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        });
+
+        // Pack data with proper alignment and types
+        
+        this.m_particleBindGroup = this.m_gpuDevice.createBindGroup({
+            layout: this.m_particleRasterizationPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: { buffer: this.m_particleBuffer },
+                },
+            ],
+        });
+
+        this.m_computePipeline.SetVariables([
+            {
+                name: "particles",
+                buffer: this.m_particleBuffer,
+            },
+        ]);
+
+        this.Reset();
+    }
+
+    Reset(){
+        const commandEncoder = this.m_gpuDevice.createCommandEncoder();
+        const computePass = commandEncoder.beginComputePass();
+        this.m_computePipeline.Execute(computePass, Math.ceil(this.m_maxParticles));
+        computePass.end();
+        this.m_gpuDevice.queue.submit([commandEncoder.finish()]);
     }
 
     private m_gpuAdapter!: GPUAdapter | null;
@@ -191,13 +227,19 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     private m_gpuContext!: GPUCanvasContext;
     private m_gpuFormat!: GPUTextureFormat;
 
-    private m_cValue = 0;
-    private m_sign = 1;
-    private m_color: GPUColor = { r: 0, g: 0, b: 0, a: 1 };
+    private m_color: { r: number; g: number; b: number; a: number } = { r: 0, g: 0, b: 0, a: 1 };
 
     private m_particleRasterizationProgram!: GPUShaderModule;
     private m_particleRasterizationPipeline!: GPURenderPipeline;
 
     private m_particleVertexBuffer!: GPUBuffer;
     private m_particleIndexBuffer!: GPUBuffer;
+
+    //private m_particles: ParticleData[] = [];
+    private m_particleBuffer!: GPUBuffer;
+
+    private m_particleBindGroup!: GPUBindGroup;
+    private m_maxParticles: number = 20;
+
+    private m_computePipeline!: ComputePipeline;
 }

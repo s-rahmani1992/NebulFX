@@ -11,29 +11,25 @@ struct VertexOutput {
     @location(1) @interpolate(flat) instanceIndex : u32,
 }
 
+struct ParticleData {
+    position: vec2f,
+    color: vec4f,
+    scale: vec2f,
+    isAlive: u32,
+}
+
+@group(0) @binding(0) var<storage, read> particles : array<ParticleData>;
+
 @vertex
 fn vs_main(input : VertexInput) -> VertexOutput {
     var output : VertexOutput;
+    var particle = particles[input.instanceIndex];
 
-    var xOffset = 0.0;
-    var yOffset = 0.0;
-    var instanceIndex = input.instanceIndex % 4u; // Ensure instanceIndex is between 0 and 3
-
-    if(instanceIndex == 0) {
-        xOffset = -0.5;
-        yOffset = -0.5;
-    } else if(instanceIndex == 1) {
-        xOffset = 0.5;
-        yOffset = -0.5;
-    } else if(instanceIndex == 2) {
-        xOffset = -0.5;
-        yOffset = 0.5;
-    } else if(instanceIndex == 3) {
-        xOffset = 0.5;
-        yOffset = 0.5;
+    var w = 0.0;
+    if(particle.isAlive == 1u) {
+        w = 1.0;
     }
-
-    output.position = vec4f(0.1 *input.position + vec2f(xOffset, yOffset), 0.0, 1.0);
+    output.position = vec4f(particle.scale * input.position + particle.position, 0.0, w);
     output.uv = input.uv;
     output.instanceIndex = input.instanceIndex;
     return output;
@@ -41,7 +37,6 @@ fn vs_main(input : VertexInput) -> VertexOutput {
 
 @fragment
 fn fs_main(input : VertexOutput) -> @location(0) vec4f {
-    var factor = 1.0 / f32(input.instanceIndex + 1u);
-
-    return vec4f(1.0, 0.0, factor, 1.0);
+    var particle = particles[input.instanceIndex];
+    return particle.color;
 }
