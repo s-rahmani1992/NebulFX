@@ -1,8 +1,12 @@
-import ParticleEngine  from "../ParticleEngine";
+import ParticleEngine from "../ParticleEngine";
+
+import particleRasterizationProgramWGSL from "./Shaders/particle.raster.wgsl?raw";
+
+import {Vertex2D, Vector2} from "../Vertices"
 
 export default class WebGPUParticleEngine extends ParticleEngine {
-    
-    async Initialize(canvas: HTMLCanvasElement,error: { message: string }): Promise<boolean> {
+
+    async Initialize(canvas: HTMLCanvasElement, error: { message: string }): Promise<boolean> {
         let success = await this.CreateGPUVariables(error);
         if (!success) {
             return false;
@@ -11,6 +15,18 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         if (!this.AttachCanvas(canvas, error)) {
             return false;
         }
+
+        success = await this.LoadShaders(error);
+        if (!success) {
+            return false;
+        }
+
+        success = await this.CreatePipelines(error);
+        if (!success) {
+            return false;
+        }
+
+        this.CreateParticleBuffers();
 
         return true;
     }
@@ -23,14 +39,14 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         }
 
         this.m_gpuContext = context;
-        
+
         const format = navigator.gpu.getPreferredCanvasFormat();
         this.m_gpuContext.configure({
             device: this.m_gpuDevice,
             format: format,
             alphaMode: "opaque",
         });
-
+        this.m_gpuFormat = navigator.gpu.getPreferredCanvasFormat();
         return true;
     }
 
@@ -59,12 +75,16 @@ export default class WebGPUParticleEngine extends ParticleEngine {
                 },
             ],
         });
+        pass.setPipeline(this.m_particleRasterizationPipeline);
+        pass.setVertexBuffer(0, this.m_particleVertexBuffer);
+        pass.setIndexBuffer(this.m_particleIndexBuffer, "uint16");
+        pass.drawIndexed(6, 4, 0, 0, 0);
 
         pass.end();
         this.m_gpuDevice.queue.submit([commandEncoder.finish()]);
     }
 
-    async CreateGPUVariables(error: { message: string }) : Promise<boolean> {
+    async CreateGPUVariables(error: { message: string }): Promise<boolean> {
         const gpu = navigator.gpu;
         if (!gpu) {
             error.message = "WebGPU is not supported in this browser.";
@@ -88,11 +108,96 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         return true;
     }
 
+    async LoadShaders(error: { message: string }): Promise<boolean> {
+        this.m_particleRasterizationProgram = this.m_gpuDevice.createShaderModule({
+            code: particleRasterizationProgramWGSL
+        });
+
+        const compilationInfo = await this.m_particleRasterizationProgram.getCompilationInfo();
+        if (compilationInfo.messages.length > 0) {
+            error.message = "Shader compilation failed: " + compilationInfo.messages.map(msg => msg.message).join("\n");
+            return false;
+        }
+
+        return true;
+    }
+
+    async CreatePipelines(error: { message: string }): Promise<boolean> {
+        try {
+            this.m_particleRasterizationPipeline = await this.m_gpuDevice.createRenderPipelineAsync({
+                vertex: {
+                    module: this.m_particleRasterizationProgram,
+                    entryPoint: "vs_main",
+                    buffers: [
+                        {
+                            arrayStride: 4 * 4,
+                            attributes: [
+                                {
+                                    shaderLocation: 0,
+                                    offset: 0,
+                                    format: "float32x2",
+                                },
+                                {
+                                    shaderLocation: 1,
+                                    offset: 2 * 4,
+                                    format: "float32x2",
+                                }
+                            ],
+                        },
+                    ],
+                },
+                fragment: {
+                    module: this.m_particleRasterizationProgram,
+                    entryPoint: "fs_main",
+                    targets: [{ format: this.m_gpuFormat }],
+                },
+                primitive: { topology: "triangle-list" },
+                layout: "auto",
+            });
+        } catch (e) {
+            error.message = "Failed to create render pipeline: " + (e instanceof Error ? e.message : String(e));
+            return false;
+        }
+
+        return true;
+    }
+
+    CreateParticleBuffers() {
+        // Create a simple quad for particle rendering
+        const vertices: Vertex2D[] = [
+            new Vertex2D(new Vector2(-1.0, -1.0), new Vector2(0, 0)),
+            new Vertex2D(new Vector2(1.0, -1.0), new Vector2(1, 0)),
+            new Vertex2D(new Vector2(1.0, 1.0), new Vector2(1, 1)),
+            new Vertex2D(new Vector2(-1.0, 1.0), new Vector2(0, 1)),
+        ];
+
+        const indices = [0, 1, 2, 0, 2, 3];
+
+        this.m_particleVertexBuffer = this.m_gpuDevice.createBuffer({
+            size: vertices.length * 4 * 4,
+            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+        });
+        this.m_gpuDevice.queue.writeBuffer(this.m_particleVertexBuffer, 0, new Float32Array(vertices.flatMap(v => [v.position.x, v.position.y, v.uv.x, v.uv.y])));
+
+        this.m_particleIndexBuffer = this.m_gpuDevice.createBuffer({
+            size: indices.length * 2,
+            usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+        });
+        this.m_gpuDevice.queue.writeBuffer(this.m_particleIndexBuffer, 0, new Uint16Array(indices));
+    }
+
     private m_gpuAdapter!: GPUAdapter | null;
     private m_gpuDevice!: GPUDevice;
     private m_gpuContext!: GPUCanvasContext;
+    private m_gpuFormat!: GPUTextureFormat;
 
     private m_cValue = 0;
     private m_sign = 1;
-    private m_color : GPUColor = { r: 0, g: 0, b: 0, a: 1 };
+    private m_color: GPUColor = { r: 0, g: 0, b: 0, a: 1 };
+
+    private m_particleRasterizationProgram!: GPUShaderModule;
+    private m_particleRasterizationPipeline!: GPURenderPipeline;
+
+    private m_particleVertexBuffer!: GPUBuffer;
+    private m_particleIndexBuffer!: GPUBuffer;
 }
