@@ -11,15 +11,6 @@ struct VertexOutput {
     @location(1) @interpolate(flat) instanceIndex : u32,
 }
 
-struct ParticleData {
-    state: u32, // 0: dead, 1: just spawned, 2: alive
-    age: f32,
-    lifeTime: f32,
-    position: vec2f,
-    scale: vec2f,
-    color: vec4f,
-}
-
 @group(0) @binding(0) var<storage, read> particles : array<ParticleData>;
 
 @vertex

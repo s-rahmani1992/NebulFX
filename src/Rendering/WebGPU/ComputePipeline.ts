@@ -1,4 +1,5 @@
 import { WgslReflect } from "wgsl_reflect";
+import { ShaderCompiler } from "./ShaderCompiler";
 
 export class VariableInput{
     name: string;
@@ -24,14 +25,8 @@ export class ComputePipeline {
     }
 
     async Initialize(shaderCode: string, error: { message: string }) : Promise<boolean>     {
-        const shaderModule = this.m_device.createShaderModule({
-            code: shaderCode,
-        });
-
-        const compilationInfo = await shaderModule.getCompilationInfo();
-        if (compilationInfo.messages.length > 0) {
-            console.error("Shader compilation messages:", compilationInfo.messages);
-            error.message = "Shader compilation failed";
+        const shaderModule = await ShaderCompiler.CompileShader(this.m_device, shaderCode, error);
+        if (!shaderModule) {
             return false;
         }
 

@@ -3,8 +3,8 @@ import ParticleEngine from "../ParticleEngine";
 import particleRasterizationProgramWGSL from "./Shaders/particle.raster.wgsl?raw";
 
 import {Vertex2D, Vector2} from "../Vertices"
-import {ParticleData} from "../Particles"
 import { ComputePipeline } from "./ComputePipeline";
+import { ShaderCompiler } from "./ShaderCompiler";
 import particleResetComputeProgramWGSL from "./Shaders/particle_reset.compute.wgsl?raw";
 import particleSpawnComputeProgramWGSL from "./Shaders/particle_spawn.compute.wgsl?raw";
 import particleUpdateComputeProgramWGSL from "./Shaders/particle_update.compute.wgsl?raw";
@@ -143,20 +143,21 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     }
 
     async LoadShaders(error: { message: string }): Promise<boolean> {
-        this.m_particleRasterizationProgram = this.m_gpuDevice.createShaderModule({
-            code: particleRasterizationProgramWGSL
-        });
-
-        const compilationInfo = await this.m_particleRasterizationProgram.getCompilationInfo();
-        if (compilationInfo.messages.length > 0) {
-            error.message = "Shader compilation failed: " + compilationInfo.messages.map(msg => msg.message).join("\n");
-            return false;
+        this.m_particleRasterizationProgram = await ShaderCompiler.CompileShader(this.m_gpuDevice, particleRasterizationProgramWGSL, error);
+        
+        if (!this.m_particleRasterizationProgram) {
+            return false;  
         }
 
         return true;
     }
 
     async CreatePipelines(error: { message: string }): Promise<boolean> {
+        if(!this.m_particleRasterizationProgram) {
+            error.message = "Particle rasterization shader program is not loaded.";
+            return false;
+        }
+
         try {
             this.m_particleRasterizationPipeline = await this.m_gpuDevice.createRenderPipelineAsync({
                 vertex: {
@@ -323,7 +324,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
 
     private m_color: { r: number; g: number; b: number; a: number } = { r: 0, g: 0, b: 0, a: 1 };
 
-    private m_particleRasterizationProgram!: GPUShaderModule;
+    private m_particleRasterizationProgram!: GPUShaderModule | null;
     private m_particleRasterizationPipeline!: GPURenderPipeline;
 
     private m_particleVertexBuffer!: GPUBuffer;

@@ -8,29 +8,11 @@ fn hash_u32(x: u32) -> u32 {
     return h;
 }
 
-fn random_f32(seed: u32) -> f32 {
-    let h = hash_u32(seed);
-    return f32(h) / 4294967296.0; // 2^32
-}
-
-fn random_range_f32(seed: u32, min: f32, max: f32) -> f32 {
-    let r = random_f32(seed);
+fn RandomRange(seed: ptr<function,u32>, min: f32, max: f32) -> f32 {
+    let h = hash_u32(*seed);
+    let r = f32(h) / 4294967296.0; // 2^32
+    (*seed) = (*seed) * 1664525u + 1013904223u;
     return mix(min, max, r);
-}
-
-struct ParticleData {
-    state: u32, // 0: dead, 1: just spawned, 2: alive
-    age: f32,
-    lifeTime: f32,
-    position: vec2f,
-    scale: vec2f,
-    color: vec4f,
-}
-
-struct ParticleFrameData {
-    deltaTime: f32,
-    seed: u32,
-    particleCount: atomic<u32>,
 }
 
 @group(0) @binding(0) var<storage, read_write> particles : array<ParticleData>;
@@ -43,15 +25,17 @@ fn cs_main(@builtin(global_invocation_id) id: vec3<u32>) {
         return; 
     }
 
+    var seed = frameData.seed + id.x; // Update seed for randomness
+
     if(particles[id.x].state == 1u) { // Just spawned, transition to alive and initialize properties
         let index = id.x;
         
         particles[index].state = 2u;
         particles[index].age = 0.0;
         particles[index].lifeTime = 1.0; 
-        particles[index].position = vec2f(random_range_f32(frameData.seed + index, -0.4, 0.4), random_range_f32(frameData.seed + index + 1u, -0.4, 0.4)); // Spawn at random position
-        particles[index].color = vec4f(random_range_f32(frameData.seed + index + 4u, 0.0, 1.0), random_range_f32(frameData.seed + index + 5u, 0.0, 1.0), random_range_f32(frameData.seed + index + 6u, 0.0, 1.0), 1.0); // White color
-        let scale = random_range_f32(frameData.seed + index + 2u, 0.1, 0.2);
+        particles[index].position = vec2f(RandomRange(&seed, -0.4, 0.4), RandomRange(&seed, -0.4, 0.4)); // Spawn at random position
+        particles[index].color = vec4f(RandomRange(&seed, 0.0, 1.0), RandomRange(&seed, 0.0, 1.0), RandomRange(&seed, 0.0, 1.0), 1.0); // White color
+        let scale = RandomRange(&seed, 0.1, 0.2);
         particles[index].scale = vec2f(scale, scale); // Default scale
         return;
     } 
