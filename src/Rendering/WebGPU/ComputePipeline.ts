@@ -34,11 +34,13 @@ export class ComputePipeline {
             return false;
         }
 
+        this.m_reflect = new WgslReflect(shaderCode);
+
         try {
             this.m_pipeline = await this.m_device.createComputePipelineAsync({
                 compute: {
                     module: shaderModule,
-                    entryPoint: "cs_main",
+                    entryPoint: this.m_reflect.entry.compute[0].name,
                 },
                 layout: "auto",
             });
@@ -46,8 +48,6 @@ export class ComputePipeline {
             error.message = "Failed to create compute pipeline";
             return false;
         }
-
-        this.m_reflect = new WgslReflect(shaderCode);
 
         return true;
     }
@@ -86,7 +86,6 @@ export class ComputePipeline {
             });
 
             const bindGroup = this.m_device.createBindGroup(descriptor);
-            console.log(descriptor);
             this.m_bindGroupMap.set(variables[0].group, bindGroup);
         }
     }

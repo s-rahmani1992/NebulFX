@@ -27,8 +27,8 @@ export default function RenderContext({ engine }: { engine: ParticleEngine }) {
       // --- 2. infinite loop ---
 
       let running = true;
-
-      function Render() {
+      lastFrameTimeRef.current = performance.now();
+      async function Render() {
         if (!running) return;
 
         while(performance.now() - lastFrameTimeRef.current < frameDuration) {
@@ -36,8 +36,8 @@ export default function RenderContext({ engine }: { engine: ParticleEngine }) {
 
         dt = (performance.now() - lastFrameTimeRef.current)/1000;
 
-        engine.Update(dt);
-        engine.Render();
+        await engine.Update(dt);
+        await engine.Render();
 
         lastFrameTimeRef.current = performance.now();
         
