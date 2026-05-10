@@ -15,6 +15,7 @@ export class ComputePipeline {
     private m_pipeline!: GPUComputePipeline;
     private m_reflect!: WgslReflect;
     private m_bindGroupMap: Map<number, GPUBindGroup> = new Map();
+    private m_threadCount: number = 1;
 
     constructor(device?: GPUDevice) {
         if (device) {
@@ -35,6 +36,14 @@ export class ComputePipeline {
         }
 
         this.m_reflect = new WgslReflect(shaderCode);
+        let attributes = this.m_reflect.entry.compute[0].attributes;
+
+        for (const attr of attributes!) {
+            if (attr.name === "workgroup_size") {
+                this.m_threadCount = parseInt(attr.value! as string);
+                break;
+            }   
+        }
 
         try {
             this.m_pipeline = await this.m_device.createComputePipelineAsync({
@@ -52,13 +61,13 @@ export class ComputePipeline {
         return true;
     }
 
-    Execute(computeEncoder: GPUComputePassEncoder, x: number, y: number = 1, z: number = 1) {
+    Execute(computeEncoder: GPUComputePassEncoder, x: number) {
         computeEncoder.setPipeline(this.m_pipeline);
 
         for (const [groupIndex, bindGroup] of this.m_bindGroupMap) {
             computeEncoder.setBindGroup(groupIndex, bindGroup);
         }
-        computeEncoder.dispatchWorkgroups(x, y, z);
+        computeEncoder.dispatchWorkgroups(Math.ceil(x / this.m_threadCount), 1, 1);
     }
 
     SetVariables(inputs: VariableInput[]) {

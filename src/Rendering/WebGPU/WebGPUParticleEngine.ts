@@ -7,6 +7,7 @@ import {ParticleData} from "../Particles"
 import { ComputePipeline } from "./ComputePipeline";
 import particleResetComputeProgramWGSL from "./Shaders/particle_reset.compute.wgsl?raw";
 import particleSpawnComputeProgramWGSL from "./Shaders/particle_spawn.compute.wgsl?raw";
+import particleUpdateComputeProgramWGSL from "./Shaders/particle_update.compute.wgsl?raw";
 
 class FrameData{
     deltaTime: number = 0.0;
@@ -67,7 +68,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         this.m_frameData.seed = performance.now() / 1000;
         this.m_gpuDevice.queue.writeBuffer(this.m_frameDataBuffer, 0, new Float32Array([
             this.m_frameData.deltaTime,
-            this.m_frameData.seed,
+            this.m_frameData.seed
         ]));
 
         this.m_totalParticlesSpawned += this.m_spawnRate * deltaTime;
@@ -83,6 +84,13 @@ export default class WebGPUParticleEngine extends ParticleEngine {
             await this.m_gpuDevice.queue.onSubmittedWorkDone().then(() => {
             });
         }
+
+        const commandEncoder = this.m_gpuDevice.createCommandEncoder();
+        const computePass = commandEncoder.beginComputePass();
+        this.m_updateComputePipeline.Execute(computePass, Math.ceil(this.m_maxParticles));
+        computePass.end();
+        this.m_gpuDevice.queue.submit([commandEncoder.finish()]);
+        await this.m_gpuDevice.queue.onSubmittedWorkDone();
     }
 
     async Render(): Promise<void> {
@@ -186,6 +194,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         }
         this.m_resetComputePipeline = new ComputePipeline(this.m_gpuDevice);
         this.m_spawnComputePipeline = new ComputePipeline(this.m_gpuDevice);
+        this.m_updateComputePipeline = new ComputePipeline(this.m_gpuDevice);
 
         let success = await this.m_resetComputePipeline.Initialize(particleResetComputeProgramWGSL, error);
         if (!success) {
@@ -193,6 +202,11 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         }
 
         success = await this.m_spawnComputePipeline.Initialize(particleSpawnComputeProgramWGSL, error);
+        if (!success) {
+            return false;
+        }
+
+        success = await this.m_updateComputePipeline.Initialize(particleUpdateComputeProgramWGSL, error);
         if (!success) {
             return false;
         }
@@ -224,7 +238,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         this.m_gpuDevice.queue.writeBuffer(this.m_particleIndexBuffer, 0, new Uint16Array(indices));
 
         this.m_particleBuffer = this.m_gpuDevice.createBuffer({
-            size: this.m_maxParticles * 48, // Struct size must be multiple of 16: 44 data + 4 padding
+            size: this.m_maxParticles * 48,
             usage: GPUBufferUsage.STORAGE,
         });
 
@@ -276,6 +290,21 @@ export default class WebGPUParticleEngine extends ParticleEngine {
             },
         ]);
 
+        this.m_updateComputePipeline.SetVariables([
+            {
+                name: "particles",
+                buffer: this.m_particleBuffer,
+            },
+            {
+                name: "freeIndices",
+                buffer: this.m_freeIndicesBuffer,
+            },
+            {
+                name: "frameData",
+                buffer: this.m_frameDataBuffer,
+            },
+        ]);
+
         this.Reset();
     }
 
@@ -304,13 +333,14 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     private m_freeIndicesBuffer!: GPUBuffer;
 
     private m_particleBindGroup!: GPUBindGroup;
-    private m_maxParticles: number = 200;
+    private m_maxParticles: number = 300;
 
     private m_resetComputePipeline!: ComputePipeline;
     private m_spawnComputePipeline!: ComputePipeline;
+    private m_updateComputePipeline!: ComputePipeline;
     private m_frameDataBuffer!: GPUBuffer;
     private m_frameData: FrameData = new FrameData();
 
-    private m_spawnRate: number = 10; // Particles per second
+    private m_spawnRate: number = 30; // Particles per second
     private m_totalParticlesSpawned: number = 0.0;
 }
