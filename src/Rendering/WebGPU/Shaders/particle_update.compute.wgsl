@@ -33,9 +33,12 @@ fn cs_main(@builtin(global_invocation_id) id: vec3<u32>) {
         particles[index].state = 2u;
         particles[index].age = 0.0;
         particles[index].lifeTime = 1.0; 
-        particles[index].position = vec2f(RandomRange(&seed, -0.4, 0.4), RandomRange(&seed, -0.4, 0.4)); // Spawn at random position
+        particles[index].position = vec2f(0.0, 0.0);
+        var radious = RandomRange(&seed, 0.2, 0.8);
+        var angle = RandomRange(&seed, 0.0, 6.28318530718); // 0 to 2*PI
+        particles[index].velocity = radious * vec2f(cos(angle), sin(angle)); // Random velocity
         particles[index].color = vec4f(RandomRange(&seed, 0.0, 1.0), RandomRange(&seed, 0.0, 1.0), RandomRange(&seed, 0.0, 1.0), 1.0); // White color
-        let scale = RandomRange(&seed, 0.1, 0.2);
+        let scale = RandomRange(&seed, 0.02, 0.05);
         particles[index].scale = vec2f(scale, scale); // Default scale
         return;
     } 
@@ -49,4 +52,7 @@ fn cs_main(@builtin(global_invocation_id) id: vec3<u32>) {
         freeIndices[freeIndex - 1] = id.x; // Add to free list
         return;
     }
+
+    // Update position based on velocity
+    particles[id.x].position += particles[id.x].velocity * frameData.deltaTime;
 }

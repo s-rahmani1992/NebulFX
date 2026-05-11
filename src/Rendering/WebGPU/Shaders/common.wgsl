@@ -6,6 +6,7 @@ struct ParticleData {
     position: vec2f,
     scale: vec2f,
     color: vec4f,
+    velocity: vec2f,
 }
 
 struct ParticleFrameData {

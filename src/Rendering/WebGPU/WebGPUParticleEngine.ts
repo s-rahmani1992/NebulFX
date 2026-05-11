@@ -5,6 +5,7 @@ import particleRasterizationProgramWGSL from "./Shaders/particle.raster.wgsl?raw
 import {Vertex2D, Vector2} from "../Vertices"
 import { ComputePipeline } from "./ComputePipeline";
 import { ShaderCompiler } from "./ShaderCompiler";
+import { ParticleData } from "../Particles";
 import particleResetComputeProgramWGSL from "./Shaders/particle_reset.compute.wgsl?raw";
 import particleSpawnComputeProgramWGSL from "./Shaders/particle_spawn.compute.wgsl?raw";
 import particleUpdateComputeProgramWGSL from "./Shaders/particle_update.compute.wgsl?raw";
@@ -239,7 +240,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         this.m_gpuDevice.queue.writeBuffer(this.m_particleIndexBuffer, 0, new Uint16Array(indices));
 
         this.m_particleBuffer = this.m_gpuDevice.createBuffer({
-            size: this.m_maxParticles * 48,
+            size: this.m_maxParticles * ParticleData.SizeInBytes,
             usage: GPUBufferUsage.STORAGE,
         });
 
@@ -334,7 +335,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     private m_freeIndicesBuffer!: GPUBuffer;
 
     private m_particleBindGroup!: GPUBindGroup;
-    private m_maxParticles: number = 300;
+    private m_maxParticles: number = 8192;
 
     private m_resetComputePipeline!: ComputePipeline;
     private m_spawnComputePipeline!: ComputePipeline;
@@ -342,6 +343,6 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     private m_frameDataBuffer!: GPUBuffer;
     private m_frameData: FrameData = new FrameData();
 
-    private m_spawnRate: number = 30; // Particles per second
+    private m_spawnRate: number = 1000; // Particles per second
     private m_totalParticlesSpawned: number = 0.0;
 }
