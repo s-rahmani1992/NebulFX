@@ -18,7 +18,7 @@ fn vs_main(input : VertexInput) -> VertexOutput {
     var output : VertexOutput;
     var particle = particles[input.instanceIndex];
 
-    var w = 0.0;
+    var w = -1.0;
     if(particle.state > 0u) {
         w = 1.0;
     }

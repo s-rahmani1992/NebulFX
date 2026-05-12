@@ -9,6 +9,7 @@ import { ParticleData } from "../Particles";
 import particleResetComputeProgramWGSL from "./Shaders/particle_reset.compute.wgsl?raw";
 import particleSpawnComputeProgramWGSL from "./Shaders/particle_spawn.compute.wgsl?raw";
 import particleUpdateComputeProgramWGSL from "./Shaders/particle_update.compute.wgsl?raw";
+import type { FloatValueProps } from "../../Particles/FloatValueProps";
 
 class FrameData{
     deltaTime: number = 0.0;
@@ -38,7 +39,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
             return false;
         }
 
-        this.CreateParticleBuffers();
+        await this.CreateParticleBuffers();
 
         return true;
     }
@@ -64,6 +65,8 @@ export default class WebGPUParticleEngine extends ParticleEngine {
 
     async Update(deltaTime: number): Promise<void> {
         // Update particle data
+
+        await this.UpdateBuffer(this.properties.startSize, this.m_startSizeBuffer);
     
         this.m_frameData.deltaTime = deltaTime;
         this.m_frameData.seed = performance.now() / 1000;
@@ -71,6 +74,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
             this.m_frameData.deltaTime,
             this.m_frameData.seed
         ]));
+        await this.m_gpuDevice.queue.onSubmittedWorkDone();
 
         this.m_totalParticlesSpawned += this.m_spawnRate * deltaTime;
 
@@ -82,8 +86,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
             computePass.end();
             this.m_gpuDevice.queue.submit([commandEncoder.finish()]);   
             this.m_totalParticlesSpawned -= particlesTospawn;
-            await this.m_gpuDevice.queue.onSubmittedWorkDone().then(() => {
-            });
+            await this.m_gpuDevice.queue.onSubmittedWorkDone();
         }
 
         const commandEncoder = this.m_gpuDevice.createCommandEncoder();
@@ -216,7 +219,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         return true;
     }
 
-    CreateParticleBuffers() {
+    async CreateParticleBuffers():Promise<void> {
         // Create a simple quad for particle rendering
         const vertices: Vertex2D[] = [
             new Vertex2D(new Vector2(-1.0, -1.0), new Vector2(0, 0)),
@@ -253,6 +256,11 @@ export default class WebGPUParticleEngine extends ParticleEngine {
             size: 3 * 4, // deltaTime, seed, particleCount
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         });
+
+        this.m_startSizeBuffer = this.m_gpuDevice.createBuffer({
+            size: 32, // not 16 because of alignment rules
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        })
 
         // Pack data with proper alignment and types
         
@@ -305,17 +313,41 @@ export default class WebGPUParticleEngine extends ParticleEngine {
                 name: "frameData",
                 buffer: this.m_frameDataBuffer,
             },
+            {
+                name: "startSize",
+                buffer: this.m_startSizeBuffer
+            }
         ]);
 
-        this.Reset();
+        await this.Reset();
     }
 
-    Reset(){
+    async UpdateBuffer(floatProps: FloatValueProps, buffer: GPUBuffer):Promise<void>{
+        console.log(floatProps);
+        if(!floatProps.isChanged)
+            return;
+
+        const data = new ArrayBuffer(32);
+        const view = new DataView(data);
+
+        view.setUint32(0, floatProps.generationType, true);
+        view.setFloat32(4, floatProps.value, true);
+        view.setFloat32(8, floatProps.value1, true);
+        view.setFloat32(12, floatProps.probability, true);
+
+        console.log(floatProps);
+        floatProps.isChanged = false;
+        this.m_gpuDevice.queue.writeBuffer(buffer, 0, data);
+        await this.m_gpuDevice.queue.onSubmittedWorkDone();
+    }
+
+    async Reset():Promise<void>{
         const commandEncoder = this.m_gpuDevice.createCommandEncoder();
         const computePass = commandEncoder.beginComputePass();
         this.m_resetComputePipeline.Execute(computePass, Math.ceil(this.m_maxParticles));
         computePass.end();
         this.m_gpuDevice.queue.submit([commandEncoder.finish()]);
+        await this.m_gpuDevice.queue.onSubmittedWorkDone();
     }
 
     private m_gpuAdapter!: GPUAdapter | null;
@@ -335,7 +367,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     private m_freeIndicesBuffer!: GPUBuffer;
 
     private m_particleBindGroup!: GPUBindGroup;
-    private m_maxParticles: number = 8192;
+    private m_maxParticles: number = 64;
 
     private m_resetComputePipeline!: ComputePipeline;
     private m_spawnComputePipeline!: ComputePipeline;
@@ -343,6 +375,8 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     private m_frameDataBuffer!: GPUBuffer;
     private m_frameData: FrameData = new FrameData();
 
-    private m_spawnRate: number = 1000; // Particles per second
+    private m_spawnRate: number = 2; // Particles per second
     private m_totalParticlesSpawned: number = 0.0;
+
+    private m_startSizeBuffer!: GPUBuffer;
 }

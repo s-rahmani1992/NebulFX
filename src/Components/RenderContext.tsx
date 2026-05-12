@@ -35,12 +35,11 @@ export default function RenderContext({ engine }: { engine: ParticleEngine }) {
         }
 
         dt = (performance.now() - lastFrameTimeRef.current)/1000;
-
+        lastFrameTimeRef.current = performance.now();
+        
         await engine.Update(dt);
         await engine.Render();
 
-        lastFrameTimeRef.current = performance.now();
-        
         requestAnimationFrame(Render);
       }
 
