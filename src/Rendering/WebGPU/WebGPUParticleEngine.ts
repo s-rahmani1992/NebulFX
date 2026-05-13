@@ -189,7 +189,22 @@ export default class WebGPUParticleEngine extends ParticleEngine {
                 fragment: {
                     module: this.m_particleRasterizationProgram,
                     entryPoint: "fs_main",
-                    targets: [{ format: this.m_gpuFormat }],
+                    targets: [{ 
+                        format: this.m_gpuFormat,
+                        blend: {
+                color: {
+                    srcFactor: "src-alpha",
+                    dstFactor: "one-minus-src-alpha",
+                    operation: "add",
+                },
+                alpha: {
+                    srcFactor: "one",
+                    dstFactor: "one-minus-src-alpha",
+                    operation: "add",
+                }
+            },
+            writeMask: GPUColorWrite.ALL,
+                    }],
                 },
                 primitive: { topology: "triangle-list" },
                 layout: "auto",
