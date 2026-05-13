@@ -3,6 +3,7 @@ import { useRef } from 'react';
 import packageJson from '../package.json';
 import RenderContext from './Components/RenderContext'
 import FloatPropsModifier from './Components/FloatPropsModifier';
+import ColorPropsModifier from './Components/ColorPropsModifier';
 
 import ParticleEngine from './Rendering/ParticleEngine';
 import WebGPUParticleEngine from './Rendering/WebGPU/WebGPUParticleEngine';
@@ -32,13 +33,17 @@ function App() {
       </div>
       <div className="flex flex-row h-screen justify-center gap-10">
         <div className="p-2 items-center justify-center min-w-100 m-10 rounded-2xl border-2 bg-cyan-900">
-          <div className="p-2 bg-emerald-100 rounded-2xl">
+          <div className="mb-2 p-2 bg-emerald-100 rounded-2xl">
             <h2 className="text-center text-3xl text-" >Start Size</h2>
             <FloatPropsModifier floatProps={particlePropertiesRef.current.startSize} />
           </div>
+          <div className="p-2 bg-emerald-100 rounded-2xl">
+            <h2 className="text-center text-3xl text-" >Start Color</h2>
+            <ColorPropsModifier colorProps={particlePropertiesRef.current.startColor} />
+          </div>
         </div>
         <div className="p-10">
-          <ColorInputField label='Background' color={particleEngineRef.current.clearColor} />
+          <ColorInputField label='Background' color={particleEngineRef.current.clearColor} onChanged={c=>{}} />
           <RenderContext engine={particleEngineRef.current} />
         </div>
       </div>

@@ -40,11 +40,38 @@ fn GenerateValue(props: FloatValueProps, seed: ptr<function, u32>) -> f32 {
     }
 }
 
+struct ColorValueProps{
+    color: vec4f,
+    color1: vec4f,
+    generationMode: u32,
+    probability: f32,
+}
+
+fn GenerateColor(props: ColorValueProps, seed: ptr<function, u32>) -> vec4f {
+    switch props.generationMode {
+        case 0u: { // Constant
+            return props.color;
+        }
+        case 1u: { // Random Range
+            let t = RandomRange(seed, 0.0, 1.0);
+            return t * props.color + (1 - t ) * props.color1;
+        }
+        case 2u: { // Between Range
+            let r = RandomRange(seed, 0.0, 1.0);
+            return select(props.color1, props.color, r < props.probability);
+        }
+        default: {
+            return vec4(1.0,1.0,1.0,1.0);
+        }
+    }
+}
+
 @group(0) @binding(0) var<storage, read_write> particles : array<ParticleData>;
 @group(0) @binding(1) var<storage, read_write> freeIndices : array<u32>;
 @group(0) @binding(2) var<storage, read_write> frameData : ParticleFrameData;
 
 @group(1) @binding(0) var<uniform> startSize : FloatValueProps;
+@group(1) @binding(1) var<uniform> startColor : ColorValueProps;
 
 @compute @workgroup_size(64)
 fn cs_main(@builtin(global_invocation_id) id: vec3<u32>) {
@@ -64,7 +91,7 @@ fn cs_main(@builtin(global_invocation_id) id: vec3<u32>) {
         var radious = RandomRange(&seed, 0.2, 0.8);
         var angle = RandomRange(&seed, 0.0, 6.28318530718); // 0 to 2*PI
         particles[index].velocity = radious * vec2f(cos(angle), sin(angle)); // Random velocity
-        particles[index].color = vec4f(RandomRange(&seed, 0.0, 1.0), RandomRange(&seed, 0.0, 1.0), RandomRange(&seed, 0.0, 1.0), 1.0); // White color
+        particles[index].color = GenerateColor(startColor, &seed);
         let scale = GenerateValue(startSize, &seed);
         particles[index].scale = vec2f(scale, scale); // Default scale
         return;

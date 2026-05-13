@@ -10,6 +10,7 @@ import particleResetComputeProgramWGSL from "./Shaders/particle_reset.compute.wg
 import particleSpawnComputeProgramWGSL from "./Shaders/particle_spawn.compute.wgsl?raw";
 import particleUpdateComputeProgramWGSL from "./Shaders/particle_update.compute.wgsl?raw";
 import type { FloatValueProps } from "../../Particles/FloatValueProps";
+import type { ColorValueProps } from "../../Particles/ColorValueProps";
 
 class FrameData{
     deltaTime: number = 0.0;
@@ -66,8 +67,8 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     async Update(deltaTime: number): Promise<void> {
         // Update particle data
 
-        await this.UpdateBuffer(this.properties.startSize, this.m_startSizeBuffer);
-    
+        await this.UpdateFloatPropsBuffer(this.properties.startSize, this.m_startSizeBuffer);
+        await this.UpdateColorPropsBuffer(this.properties.startColor, this.m_startColorBuffer)
         this.m_frameData.deltaTime = deltaTime;
         this.m_frameData.seed = performance.now() / 1000;
         this.m_gpuDevice.queue.writeBuffer(this.m_frameDataBuffer, 0, new Float32Array([
@@ -262,6 +263,11 @@ export default class WebGPUParticleEngine extends ParticleEngine {
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         })
 
+        this.m_startColorBuffer = this.m_gpuDevice.createBuffer({
+            size : 64,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        })
+
         // Pack data with proper alignment and types
         
         this.m_particleBindGroup = this.m_gpuDevice.createBindGroup({
@@ -316,14 +322,17 @@ export default class WebGPUParticleEngine extends ParticleEngine {
             {
                 name: "startSize",
                 buffer: this.m_startSizeBuffer
+            },
+            {
+                name:"startColor",
+                buffer:this.m_startColorBuffer
             }
         ]);
 
         await this.Reset();
     }
 
-    async UpdateBuffer(floatProps: FloatValueProps, buffer: GPUBuffer):Promise<void>{
-        console.log(floatProps);
+    async UpdateFloatPropsBuffer(floatProps: FloatValueProps, buffer: GPUBuffer):Promise<void>{
         if(!floatProps.isChanged)
             return;
 
@@ -335,10 +344,33 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         view.setFloat32(8, floatProps.value1, true);
         view.setFloat32(12, floatProps.probability, true);
 
-        console.log(floatProps);
         floatProps.isChanged = false;
         this.m_gpuDevice.queue.writeBuffer(buffer, 0, data);
         await this.m_gpuDevice.queue.onSubmittedWorkDone();
+    }
+
+    async UpdateColorPropsBuffer(colorProps: ColorValueProps, buffer: GPUBuffer):Promise<void>{
+        if(!colorProps.isChanged)
+            return;
+
+        console.log(colorProps);
+        const data = new ArrayBuffer(64);
+        const view = new DataView(data);
+        this.WriteColorToView(colorProps.color, view, 0);
+        this.WriteColorToView(colorProps.color1, view, 16);
+        view.setUint32(32, colorProps.generationMode, true);
+        view.setFloat32(36, colorProps.probability, true);
+
+        colorProps.isChanged = false;
+        this.m_gpuDevice.queue.writeBuffer(buffer, 0, data);
+        await this.m_gpuDevice.queue.onSubmittedWorkDone();
+    }
+
+    WriteColorToView(color: { r: number; g: number; b: number; a: number }, view:DataView, offset:number){
+        view.setFloat32(offset, color.r, true);
+        view.setFloat32(offset + 4, color.g, true);
+        view.setFloat32(offset + 8, color.b, true);
+        view.setFloat32(offset + 12, color.a, true);
     }
 
     async Reset():Promise<void>{
@@ -365,7 +397,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     private m_freeIndicesBuffer!: GPUBuffer;
 
     private m_particleBindGroup!: GPUBindGroup;
-    private m_maxParticles: number = 64;
+    private m_maxParticles: number = 1024;
 
     private m_resetComputePipeline!: ComputePipeline;
     private m_spawnComputePipeline!: ComputePipeline;
@@ -373,8 +405,9 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     private m_frameDataBuffer!: GPUBuffer;
     private m_frameData: FrameData = new FrameData();
 
-    private m_spawnRate: number = 2; // Particles per second
+    private m_spawnRate: number = 60; // Particles per second
     private m_totalParticlesSpawned: number = 0.0;
 
     private m_startSizeBuffer!: GPUBuffer;
+    private m_startColorBuffer!:GPUBuffer;
 }

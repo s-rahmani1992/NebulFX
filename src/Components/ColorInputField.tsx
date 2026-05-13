@@ -2,7 +2,10 @@ import { useState, useRef, useEffect } from "react";
 import { RgbaColorPicker } from "react-colorful";
 
 export function ColorInputField(
-    {label, color}: {label: string, color:{ r: number; g: number; b: number; a: number }}) {
+    {label, color, onChanged}: 
+    {label: string, 
+        color:{ r: number; g: number; b: number; a: number };
+        onChanged: (c: { r: number; g: number; b: number; a: number }) => void}){
     const [localColor, setLocalColor] = useState(color)
     const [open, setOpen] = useState(false);
 
@@ -10,6 +13,8 @@ export function ColorInputField(
     const fieldRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        setLocalColor({r:color.r*255, g:color.g*255, b:color.b*255, a:color.a});
+
         function handleClickOutside(e: MouseEvent) {
             const popup = popupRef.current;
             const field = fieldRef.current;
@@ -52,12 +57,14 @@ export function ColorInputField(
                 >
                     <div style={{ transformOrigin: "top left" }}>
                         <RgbaColorPicker color={localColor} onChange={colorVal => {
-                            Object.assign(color, {
+                            let newColor = {
                                 r: colorVal.r / 255,
                                 g: colorVal.g / 255,
                                 b: colorVal.b / 255,
                                 a: colorVal.a
-                            });
+                            };
+                            Object.assign(color, newColor);
+                            onChanged(newColor);
                             setLocalColor(colorVal);
                         }} />
                     </div>
