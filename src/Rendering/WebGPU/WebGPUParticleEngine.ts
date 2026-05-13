@@ -106,7 +106,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
                     view: this.m_gpuContext.getCurrentTexture().createView(),
                     loadOp: "clear",
                     storeOp: "store",
-                    clearValue: this.m_color,
+                    clearValue: this.clearColor,
                 },
             ],
         });
@@ -354,8 +354,6 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     private m_gpuDevice!: GPUDevice;
     private m_gpuContext!: GPUCanvasContext;
     private m_gpuFormat!: GPUTextureFormat;
-
-    private m_color: { r: number; g: number; b: number; a: number } = { r: 0, g: 0, b: 0, a: 1 };
 
     private m_particleRasterizationProgram!: GPUShaderModule | null;
     private m_particleRasterizationPipeline!: GPURenderPipeline;

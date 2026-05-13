@@ -7,6 +7,7 @@ import FloatPropsModifier from './Components/FloatPropsModifier';
 import ParticleEngine from './Rendering/ParticleEngine';
 import WebGPUParticleEngine from './Rendering/WebGPU/WebGPUParticleEngine';
 import { ParticleProps } from './Particles/ParticleProperties';
+import { ColorInputField } from './Components/ColorInputField';
 
 import './index.css'
 
@@ -18,7 +19,7 @@ function App() {
     particleEngineRef.current = new WebGPUParticleEngine();
   }
 
-  if(!particlePropertiesRef.current){
+  if (!particlePropertiesRef.current) {
     particlePropertiesRef.current = new ParticleProps();
     particleEngineRef.current.properties = particlePropertiesRef.current;
   }
@@ -33,11 +34,12 @@ function App() {
         <div className="p-2 items-center justify-center min-w-100 m-10 rounded-2xl border-2 bg-cyan-900">
           <div className="p-2 bg-emerald-100 rounded-2xl">
             <h2 className="text-center text-3xl text-" >Start Size</h2>
-            <FloatPropsModifier floatProps={particlePropertiesRef.current.startSize}/>
+            <FloatPropsModifier floatProps={particlePropertiesRef.current.startSize} />
           </div>
         </div>
         <div className="p-10">
-            <RenderContext engine={particleEngineRef.current}/>
+          <ColorInputField label='Background' color={particleEngineRef.current.clearColor} />
+          <RenderContext engine={particleEngineRef.current} />
         </div>
       </div>
     </>
