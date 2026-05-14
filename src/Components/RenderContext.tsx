@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
-import type ParticleEngine from "../Rendering/ParticleEngine";
+import type { ParticleSimulator } from "../ParticleSimulator";
 
-export default function RenderContext({ engine }: { engine: ParticleEngine }) {
+export default function RenderContext({ simulator }: { simulator: ParticleSimulator }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  let engine = simulator.engine;
   const targetFps = 60;
   const frameDuration = 1000 / targetFps; // 60 FPS
   const lastFrameTimeRef = useRef<number>(performance.now());
@@ -28,18 +29,29 @@ export default function RenderContext({ engine }: { engine: ParticleEngine }) {
 
       let running = true;
       lastFrameTimeRef.current = performance.now();
+
       async function Render() {
         if (!running) return;
 
-        while(performance.now() - lastFrameTimeRef.current < frameDuration) {
+        if(simulator.isStopFlag){
+          simulator.isStopFlag = false;
+          await engine.Stop();
         }
 
-        dt = (performance.now() - lastFrameTimeRef.current)/1000;
+        if (!simulator.isPlaying) {
+          
+          lastFrameTimeRef.current = performance.now();
+          requestAnimationFrame(Render);
+          return;
+        }
+
+        while (performance.now() - lastFrameTimeRef.current < frameDuration) { }
+
+        dt = (performance.now() - lastFrameTimeRef.current) / 1000;
         lastFrameTimeRef.current = performance.now();
-        
+
         await engine.Update(dt);
         await engine.Render();
-
         requestAnimationFrame(Render);
       }
 

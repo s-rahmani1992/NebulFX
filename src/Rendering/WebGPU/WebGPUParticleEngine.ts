@@ -41,7 +41,8 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         }
 
         await this.CreateParticleBuffers();
-
+        
+        await this.ResetBuffers();
         return true;
     }
 
@@ -117,6 +118,26 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         pass.setBindGroup(0, this.m_particleBindGroup);
         pass.drawIndexed(6, this.m_maxParticles, 0, 0, 0);
 
+        pass.end();
+        this.m_gpuDevice.queue.submit([commandEncoder.finish()]);
+
+        await this.m_gpuDevice.queue.onSubmittedWorkDone();
+    }
+
+    async Stop() : Promise<void> {
+        this.m_totalParticlesSpawned = 0.0;
+        await this.ResetBuffers();
+        const commandEncoder = this.m_gpuDevice.createCommandEncoder();
+        const pass = commandEncoder.beginRenderPass({
+            colorAttachments: [
+                {
+                    view: this.m_gpuContext.getCurrentTexture().createView(),
+                    loadOp: "clear",
+                    storeOp: "store",
+                    clearValue: this.clearColor,
+                },
+            ],
+        });
         pass.end();
         this.m_gpuDevice.queue.submit([commandEncoder.finish()]);
 
@@ -343,8 +364,6 @@ export default class WebGPUParticleEngine extends ParticleEngine {
                 buffer:this.m_startColorBuffer
             }
         ]);
-
-        await this.Reset();
     }
 
     async UpdateFloatPropsBuffer(floatProps: FloatValueProps, buffer: GPUBuffer):Promise<void>{
@@ -388,7 +407,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         view.setFloat32(offset + 12, color.a, true);
     }
 
-    async Reset():Promise<void>{
+    async ResetBuffers():Promise<void>{
         const commandEncoder = this.m_gpuDevice.createCommandEncoder();
         const computePass = commandEncoder.beginComputePass();
         this.m_resetComputePipeline.Execute(computePass, Math.ceil(this.m_maxParticles));

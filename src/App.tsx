@@ -5,24 +5,24 @@ import RenderContext from './Components/RenderContext'
 import FloatPropsModifier from './Components/FloatPropsModifier';
 import ColorPropsModifier from './Components/ColorPropsModifier';
 
-import ParticleEngine from './Rendering/ParticleEngine';
-import WebGPUParticleEngine from './Rendering/WebGPU/WebGPUParticleEngine';
 import { ParticleProps } from './Particles/ParticleProperties';
 import { ColorInputField } from './Components/ColorInputField';
 
 import './index.css'
+import ParticlePlayPanel from './Components/ParticlePlayPanel';
+import { GraphicAPI, ParticleSimulator } from './ParticleSimulator';
 
 function App() {
-  const particleEngineRef = useRef<ParticleEngine | null>(null);
+  let particleSimulatorRef = useRef<ParticleSimulator | null>(null);
   let particlePropertiesRef = useRef<ParticleProps>(null);
 
-  if (!particleEngineRef.current) {
-    particleEngineRef.current = new WebGPUParticleEngine();
+  if (!particleSimulatorRef.current) {
+    particleSimulatorRef.current = new ParticleSimulator(GraphicAPI.WebGPU);
   }
 
   if (!particlePropertiesRef.current) {
     particlePropertiesRef.current = new ParticleProps();
-    particleEngineRef.current.properties = particlePropertiesRef.current;
+    particleSimulatorRef.current.engine.properties = particlePropertiesRef.current;
   }
 
   return (
@@ -43,8 +43,9 @@ function App() {
           </div>
         </div>
         <div className="p-10">
-          <ColorInputField label='Background' color={particleEngineRef.current.clearColor} onChanged={c=>{}} />
-          <RenderContext engine={particleEngineRef.current} />
+          <ColorInputField label='Background' color={particleSimulatorRef.current.engine.clearColor} onChanged={c=>{}} />
+          <ParticlePlayPanel simulator={particleSimulatorRef.current}/>
+          <RenderContext simulator={particleSimulatorRef.current} />
         </div>
       </div>
     </>
