@@ -20,8 +20,8 @@ export default function RenderContext({ simulator }: { simulator: ParticleSimula
       }
       const error = { message: "" };
 
-      if (!await engine.Initialize(canvas,error)) {
-        console.error("Failed to initialize particle engine: " + error.message);
+      if (!await engine.AttachCanvas(canvas,error)) {
+        console.error("Failed to Attach Canvas: " + error.message);
         return;
       }
 

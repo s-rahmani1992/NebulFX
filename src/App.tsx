@@ -1,29 +1,53 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 import packageJson from '../package.json';
+
+// Components
 import RenderContext from './Components/RenderContext'
 import FloatPropsModifier from './Components/FloatPropsModifier';
 import ColorPropsModifier from './Components/ColorPropsModifier';
+import { ColorInputField } from './Components/ColorInputField';
+import ParticlePlayPanel from './Components/ParticlePlayPanel';
+import ParticleStatsPanel from './Components/ParticleStatsPanel';
 
 import { ParticleProps } from './Particles/ParticleProperties';
-import { ColorInputField } from './Components/ColorInputField';
 
 import './index.css'
-import ParticlePlayPanel from './Components/ParticlePlayPanel';
+
 import { GraphicAPI, ParticleSimulator } from './ParticleSimulator';
 
-function App() {
-  let particleSimulatorRef = useRef<ParticleSimulator | null>(null);
-  let particlePropertiesRef = useRef<ParticleProps>(null);
 
-  if (!particleSimulatorRef.current) {
-    particleSimulatorRef.current = new ParticleSimulator(GraphicAPI.WebGPU);
-  }
+function App() {
+  const [simulator, SetSimulator] = useState<ParticleSimulator | null>(null)
+  let particlePropertiesRef = useRef<ParticleProps>(null);
 
   if (!particlePropertiesRef.current) {
     particlePropertiesRef.current = new ParticleProps();
-    particleSimulatorRef.current.engine.properties = particlePropertiesRef.current;
   }
+
+  const error = { message: "" };
+
+  useEffect(() => {
+  let mounted = true;
+
+  async function init() {
+    let particleSim = new ParticleSimulator(GraphicAPI.WebGPU);
+
+    const ok = await particleSim.engine.Initialize(error);
+    console.log(error.message);
+    if (mounted && ok) {
+      console.log("simulator initialized")
+      particleSim.engine.properties = particlePropertiesRef.current!;
+      SetSimulator(particleSim);
+    }
+  }
+
+  init();
+  return () => { mounted = false };
+}, []);
+
+
+  if(!simulator) return <div>{error.message}</div>;
 
   return (
     <>
@@ -43,9 +67,10 @@ function App() {
           </div>
         </div>
         <div className="p-10">
-          <ColorInputField label='Background' color={particleSimulatorRef.current.engine.clearColor} onChanged={c=>{}} />
-          <ParticlePlayPanel simulator={particleSimulatorRef.current}/>
-          <RenderContext simulator={particleSimulatorRef.current} />
+          <ColorInputField label='Background' color={simulator.engine.clearColor} onChanged={c=>{}} />
+          <ParticlePlayPanel simulator={simulator}/>
+          <RenderContext simulator={simulator} />
+          <ParticleStatsPanel simulator={simulator}/>
         </div>
       </div>
     </>

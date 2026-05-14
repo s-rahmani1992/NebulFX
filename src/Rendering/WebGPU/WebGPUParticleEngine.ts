@@ -11,6 +11,7 @@ import particleSpawnComputeProgramWGSL from "./Shaders/particle_spawn.compute.wg
 import particleUpdateComputeProgramWGSL from "./Shaders/particle_update.compute.wgsl?raw";
 import type { FloatValueProps } from "../../Particles/FloatValueProps";
 import type { ColorValueProps } from "../../Particles/ColorValueProps";
+import { ReadBackBufferPool } from "./ReadBackBufferPool";
 
 class FrameData{
     deltaTime: number = 0.0;
@@ -20,13 +21,9 @@ class FrameData{
 
 export default class WebGPUParticleEngine extends ParticleEngine {
 
-    async Initialize(canvas: HTMLCanvasElement, error: { message: string }): Promise<boolean> {
+    async Initialize(error: { message: string }): Promise<boolean> {
         let success = await this.CreateGPUVariables(error);
         if (!success) {
-            return false;
-        }
-
-        if (!this.AttachCanvas(canvas, error)) {
             return false;
         }
 
@@ -34,6 +31,8 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         if (!success) {
             return false;
         }
+
+        this.m_gpuFormat = navigator.gpu.getPreferredCanvasFormat();
 
         success = await this.CreatePipelines(error);
         if (!success) {
@@ -43,10 +42,13 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         await this.CreateParticleBuffers();
         
         await this.ResetBuffers();
+
+        this.m_frameReadBackPool = new ReadBackBufferPool(this.m_gpuDevice);
+
         return true;
     }
 
-    AttachCanvas(canvas: HTMLCanvasElement, error: { message: string }): boolean {
+    async AttachCanvas(canvas: HTMLCanvasElement, error: { message: string }): Promise<boolean> {
         const context = canvas.getContext("webgpu");
         if (!context) {
             error.message = "Failed to get WebGPU context from canvas.";
@@ -61,7 +63,6 @@ export default class WebGPUParticleEngine extends ParticleEngine {
             format: format,
             alphaMode: "opaque",
         });
-        this.m_gpuFormat = navigator.gpu.getPreferredCanvasFormat();
         return true;
     }
 
@@ -91,12 +92,19 @@ export default class WebGPUParticleEngine extends ParticleEngine {
             await this.m_gpuDevice.queue.onSubmittedWorkDone();
         }
 
-        const commandEncoder = this.m_gpuDevice.createCommandEncoder();
+        let commandEncoder = this.m_gpuDevice.createCommandEncoder();
         const computePass = commandEncoder.beginComputePass();
         this.m_updateComputePipeline.Execute(computePass, Math.ceil(this.m_maxParticles));
         computePass.end();
         this.m_gpuDevice.queue.submit([commandEncoder.finish()]);
         await this.m_gpuDevice.queue.onSubmittedWorkDone();
+
+        commandEncoder = this.m_gpuDevice.createCommandEncoder();
+        let readBackBuffer = this.m_frameReadBackPool.PullBufferForWrite();
+        commandEncoder.copyBufferToBuffer(this.m_frameDataBuffer, 0, readBackBuffer, 0, 12);
+        this.m_gpuDevice.queue.submit([commandEncoder.finish()]);
+        await this.m_gpuDevice.queue.onSubmittedWorkDone();
+        this.m_frameReadBackPool.PushWriteBuffer(readBackBuffer);
     }
 
     async Render(): Promise<void> {
@@ -127,6 +135,14 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     async Stop() : Promise<void> {
         this.m_totalParticlesSpawned = 0.0;
         await this.ResetBuffers();
+
+        this.m_gpuDevice.queue.writeBuffer(this.m_frameDataBuffer, 0, new Float32Array([
+            this.m_frameData.deltaTime,
+            this.m_frameData.seed,
+            0,
+        ]));
+        await this.m_gpuDevice.queue.onSubmittedWorkDone();
+
         const commandEncoder = this.m_gpuDevice.createCommandEncoder();
         const pass = commandEncoder.beginRenderPass({
             colorAttachments: [
@@ -142,6 +158,16 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         this.m_gpuDevice.queue.submit([commandEncoder.finish()]);
 
         await this.m_gpuDevice.queue.onSubmittedWorkDone();
+    }
+
+    async ActiveParticles(): Promise<number> {
+        let buffer = this.m_frameReadBackPool.PullBufferForReadBack();
+        await buffer.mapAsync(GPUMapMode.READ);
+        let view = new DataView(buffer.getMappedRange().slice(0));
+        let frameDataRead = view.getUint32(8, true);
+        buffer.unmap();
+        this.m_frameReadBackPool.PushReadBackBuffer(buffer);
+        return frameDataRead;
     }
 
     async CreateGPUVariables(error: { message: string }): Promise<boolean> {
@@ -291,7 +317,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
 
         this.m_frameDataBuffer = this.m_gpuDevice.createBuffer({
             size: 3 * 4, // deltaTime, seed, particleCount
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
         });
 
         this.m_startSizeBuffer = this.m_gpuDevice.createBuffer({
@@ -438,6 +464,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     private m_updateComputePipeline!: ComputePipeline;
     private m_frameDataBuffer!: GPUBuffer;
     private m_frameData: FrameData = new FrameData();
+    private m_frameReadBackPool!: ReadBackBufferPool;
 
     private m_spawnRate: number = 60; // Particles per second
     private m_totalParticlesSpawned: number = 0.0;
