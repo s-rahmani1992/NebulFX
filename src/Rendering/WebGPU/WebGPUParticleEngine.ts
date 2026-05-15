@@ -94,7 +94,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
 
         let commandEncoder = this.m_gpuDevice.createCommandEncoder();
         const computePass = commandEncoder.beginComputePass();
-        this.m_updateComputePipeline.Execute(computePass, Math.ceil(this.m_maxParticles));
+        this.m_updateComputePipeline.Execute(computePass, Math.ceil(this.maxParticles));
         computePass.end();
         this.m_gpuDevice.queue.submit([commandEncoder.finish()]);
         await this.m_gpuDevice.queue.onSubmittedWorkDone();
@@ -124,7 +124,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         pass.setVertexBuffer(0, this.m_particleVertexBuffer);
         pass.setIndexBuffer(this.m_particleIndexBuffer, "uint16");
         pass.setBindGroup(0, this.m_particleBindGroup);
-        pass.drawIndexed(6, this.m_maxParticles, 0, 0, 0);
+        pass.drawIndexed(6, this.maxParticles, 0, 0, 0);
 
         pass.end();
         this.m_gpuDevice.queue.submit([commandEncoder.finish()]);
@@ -168,6 +168,24 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         buffer.unmap();
         this.m_frameReadBackPool.PushReadBackBuffer(buffer);
         return frameDataRead;
+    }
+
+    async ChangeMaxParticles(count: number): Promise<void> {
+        this.maxParticles = count;
+        this.m_particleBuffer.destroy();
+        this.m_particleBuffer = this.m_gpuDevice.createBuffer({
+            size: this.maxParticles * ParticleData.SizeInBytes,
+            usage: GPUBufferUsage.STORAGE,
+        });
+
+        this.m_freeIndicesBuffer.destroy();
+        this.m_freeIndicesBuffer = this.m_gpuDevice.createBuffer({
+            size: this.maxParticles * 4,
+            usage: GPUBufferUsage.STORAGE,
+        });
+
+        this.CreateBindGroups();
+        await this.Stop();
     }
 
     async CreateGPUVariables(error: { message: string }): Promise<boolean> {
@@ -282,56 +300,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         return true;
     }
 
-    async CreateParticleBuffers():Promise<void> {
-        // Create a simple quad for particle rendering
-        const vertices: Vertex2D[] = [
-            new Vertex2D(new Vector2(-1.0, -1.0), new Vector2(0, 0)),
-            new Vertex2D(new Vector2(1.0, -1.0), new Vector2(1, 0)),
-            new Vertex2D(new Vector2(1.0, 1.0), new Vector2(1, 1)),
-            new Vertex2D(new Vector2(-1.0, 1.0), new Vector2(0, 1)),
-        ];
-
-        const indices = [0, 1, 2, 0, 2, 3];
-
-        this.m_particleVertexBuffer = this.m_gpuDevice.createBuffer({
-            size: vertices.length * 4 * 4,
-            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-        });
-        this.m_gpuDevice.queue.writeBuffer(this.m_particleVertexBuffer, 0, new Float32Array(vertices.flatMap(v => [v.position.x, v.position.y, v.uv.x, v.uv.y])));
-
-        this.m_particleIndexBuffer = this.m_gpuDevice.createBuffer({
-            size: indices.length * 2,
-            usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
-        });
-        this.m_gpuDevice.queue.writeBuffer(this.m_particleIndexBuffer, 0, new Uint16Array(indices));
-
-        this.m_particleBuffer = this.m_gpuDevice.createBuffer({
-            size: this.m_maxParticles * ParticleData.SizeInBytes,
-            usage: GPUBufferUsage.STORAGE,
-        });
-
-        this.m_freeIndicesBuffer = this.m_gpuDevice.createBuffer({
-            size: this.m_maxParticles * 4,
-            usage: GPUBufferUsage.STORAGE,
-        });
-
-        this.m_frameDataBuffer = this.m_gpuDevice.createBuffer({
-            size: 3 * 4, // deltaTime, seed, particleCount
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-        });
-
-        this.m_startSizeBuffer = this.m_gpuDevice.createBuffer({
-            size: 32, // not 16 because of alignment rules
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-        })
-
-        this.m_startColorBuffer = this.m_gpuDevice.createBuffer({
-            size : 64,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-        })
-
-        // Pack data with proper alignment and types
-        
+    CreateBindGroups():void{
         this.m_particleBindGroup = this.m_gpuDevice.createBindGroup({
             layout: this.m_particleRasterizationPipeline.getBindGroupLayout(0),
             entries: [
@@ -392,6 +361,59 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         ]);
     }
 
+    async CreateParticleBuffers():Promise<void> {
+        // Create a simple quad for particle rendering
+        const vertices: Vertex2D[] = [
+            new Vertex2D(new Vector2(-1.0, -1.0), new Vector2(0, 0)),
+            new Vertex2D(new Vector2(1.0, -1.0), new Vector2(1, 0)),
+            new Vertex2D(new Vector2(1.0, 1.0), new Vector2(1, 1)),
+            new Vertex2D(new Vector2(-1.0, 1.0), new Vector2(0, 1)),
+        ];
+
+        const indices = [0, 1, 2, 0, 2, 3];
+
+        this.m_particleVertexBuffer = this.m_gpuDevice.createBuffer({
+            size: vertices.length * 4 * 4,
+            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+        });
+        this.m_gpuDevice.queue.writeBuffer(this.m_particleVertexBuffer, 0, new Float32Array(vertices.flatMap(v => [v.position.x, v.position.y, v.uv.x, v.uv.y])));
+
+        this.m_particleIndexBuffer = this.m_gpuDevice.createBuffer({
+            size: indices.length * 2,
+            usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+        });
+        this.m_gpuDevice.queue.writeBuffer(this.m_particleIndexBuffer, 0, new Uint16Array(indices));
+
+        this.m_particleBuffer = this.m_gpuDevice.createBuffer({
+            size: this.maxParticles * ParticleData.SizeInBytes,
+            usage: GPUBufferUsage.STORAGE,
+        });
+
+        this.m_freeIndicesBuffer = this.m_gpuDevice.createBuffer({
+            size: this.maxParticles * 4,
+            usage: GPUBufferUsage.STORAGE,
+        });
+
+        this.m_frameDataBuffer = this.m_gpuDevice.createBuffer({
+            size: 3 * 4, // deltaTime, seed, particleCount
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+        });
+
+        this.m_startSizeBuffer = this.m_gpuDevice.createBuffer({
+            size: 32, // not 16 because of alignment rules
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        })
+
+        this.m_startColorBuffer = this.m_gpuDevice.createBuffer({
+            size : 64,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        })
+
+        // Pack data with proper alignment and types
+        
+        this.CreateBindGroups();
+    }
+
     async UpdateFloatPropsBuffer(floatProps: FloatValueProps, buffer: GPUBuffer):Promise<void>{
         if(!floatProps.isChanged)
             return;
@@ -436,7 +458,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     async ResetBuffers():Promise<void>{
         const commandEncoder = this.m_gpuDevice.createCommandEncoder();
         const computePass = commandEncoder.beginComputePass();
-        this.m_resetComputePipeline.Execute(computePass, Math.ceil(this.m_maxParticles));
+        this.m_resetComputePipeline.Execute(computePass, Math.ceil(this.maxParticles));
         computePass.end();
         this.m_gpuDevice.queue.submit([commandEncoder.finish()]);
         await this.m_gpuDevice.queue.onSubmittedWorkDone();
@@ -457,8 +479,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     private m_freeIndicesBuffer!: GPUBuffer;
 
     private m_particleBindGroup!: GPUBindGroup;
-    private m_maxParticles: number = 1024;
-
+    
     private m_resetComputePipeline!: ComputePipeline;
     private m_spawnComputePipeline!: ComputePipeline;
     private m_updateComputePipeline!: ComputePipeline;
@@ -470,5 +491,5 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     private m_totalParticlesSpawned: number = 0.0;
 
     private m_startSizeBuffer!: GPUBuffer;
-    private m_startColorBuffer!:GPUBuffer;
+    private m_startColorBuffer!: GPUBuffer;
 }

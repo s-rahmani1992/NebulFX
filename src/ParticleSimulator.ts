@@ -13,6 +13,7 @@ export class ParticleSimulator{
     public engine!: ParticleEngine
     public isPlaying : boolean = true;
     public isStopFlag : boolean = false;
+    public maxParticleFlag : number = -1;
 
     constructor(graphicAPI : GraphicAPI){
         switch(graphicAPI){

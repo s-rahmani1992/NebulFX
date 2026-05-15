@@ -33,6 +33,11 @@ export default function RenderContext({ simulator }: { simulator: ParticleSimula
       async function Render() {
         if (!running) return;
 
+        if(simulator.maxParticleFlag > 0){
+          await engine.ChangeMaxParticles(simulator.maxParticleFlag);
+          simulator.maxParticleFlag = -1;
+        }
+
         if(simulator.isStopFlag){
           simulator.isStopFlag = false;
           await engine.Stop();

@@ -7,7 +7,9 @@ export default abstract class ParticleEngine{
     abstract Render(): Promise<void>;
     abstract Stop() : Promise<void>;
     abstract ActiveParticles() : Promise<number>;
+    abstract ChangeMaxParticles(count:number) : Promise<void>;
 
     public clearColor: { r: number; g: number; b: number; a: number } = { r: 0, g: 0, b: 0, a: 1 };
     public properties: ParticleProps = new ParticleProps();
+    public maxParticles: number = 1024;
 }
