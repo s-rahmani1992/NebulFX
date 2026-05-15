@@ -79,16 +79,15 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         ]));
         await this.m_gpuDevice.queue.onSubmittedWorkDone();
 
-        this.m_totalParticlesSpawned += this.m_spawnRate * deltaTime;
-
-        let particlesTospawn = Math.floor(this.m_totalParticlesSpawned);
+        let particlesTospawn = this.properties.emitter.Spawn(deltaTime);
+        
+        console.log(particlesTospawn);
         if (particlesTospawn > 0) {
             const commandEncoder = this.m_gpuDevice.createCommandEncoder();
             const computePass = commandEncoder.beginComputePass();
             this.m_spawnComputePipeline.Execute(computePass, particlesTospawn);
             computePass.end();
-            this.m_gpuDevice.queue.submit([commandEncoder.finish()]);   
-            this.m_totalParticlesSpawned -= particlesTospawn;
+            this.m_gpuDevice.queue.submit([commandEncoder.finish()]);
             await this.m_gpuDevice.queue.onSubmittedWorkDone();
         }
 
@@ -133,7 +132,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     }
 
     async Stop() : Promise<void> {
-        this.m_totalParticlesSpawned = 0.0;
+        this.properties.emitter.Reset();
         await this.ResetBuffers();
 
         this.m_gpuDevice.queue.writeBuffer(this.m_frameDataBuffer, 0, new Float32Array([
@@ -486,9 +485,6 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     private m_frameDataBuffer!: GPUBuffer;
     private m_frameData: FrameData = new FrameData();
     private m_frameReadBackPool!: ReadBackBufferPool;
-
-    private m_spawnRate: number = 60; // Particles per second
-    private m_totalParticlesSpawned: number = 0.0;
 
     private m_startSizeBuffer!: GPUBuffer;
     private m_startColorBuffer!: GPUBuffer;

@@ -1,5 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 
+import './index.css'
+
 import packageJson from '../package.json';
 
 // Components
@@ -9,14 +11,11 @@ import ColorPropsModifier from './Components/ColorPropsModifier';
 import { ColorInputField } from './Components/ColorInputField';
 import ParticlePlayPanel from './Components/ParticlePlayPanel';
 import ParticleStatsPanel from './Components/ParticleStatsPanel';
+import { FloatInputField } from './Components/FloatInputField';
+import EmitterPropsEditor from './Components/EmitterPropsEditor';
 
 import { ParticleProps } from './Particles/ParticleProperties';
-
-import './index.css'
-
 import { GraphicAPI, ParticleSimulator } from './ParticleSimulator';
-import { FloatInputField } from './Components/FloatInputField';
-
 
 function App() {
   const [simulator, SetSimulator] = useState<ParticleSimulator | null>(null)
@@ -63,6 +62,10 @@ function App() {
             <FloatInputField label='Maximum Particles' min={1} max={1000000} value={simulator.engine.maxParticles} onValueChanged={value=>{
             simulator.maxParticleFlag = value;
           }}/>
+          </div>
+          <div className="mb-2 p-2 bg-emerald-100 rounded-2xl">
+            <h2 className="text-center text-3xl text-" >Emission</h2>
+            <EmitterPropsEditor emitter={particlePropertiesRef.current.emitter} />
           </div>
           <div className="mb-2 p-2 bg-emerald-100 rounded-2xl">
             <h2 className="text-center text-3xl text-" >Start Size</h2>
