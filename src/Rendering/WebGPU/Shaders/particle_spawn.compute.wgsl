@@ -5,10 +5,20 @@
 
 @compute @workgroup_size(1)
 fn cs_main(@builtin(global_invocation_id) id: vec3<u32>) {
-    let index = atomicAdd(&frameData.particleCount, 1u);
+    let old = atomicLoad(&frameData.particleCount);
+    let max = arrayLength(&particles);
 
-    if (index < arrayLength(&particles)) {
-        let particleIndex = freeIndices[index];
+    if (old >= max){
+        return;
+    }
+
+    // Try to claim this index
+    let result = atomicCompareExchangeWeak(&frameData.particleCount, old, old + 1u);
+
+    if (result.exchanged) {
+        // Successfully reserved index = old
+        let particleIndex = freeIndices[old];
         particles[particleIndex].state = 1u;
+        return;
     }
 }
