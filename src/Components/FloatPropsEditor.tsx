@@ -2,7 +2,9 @@ import React, { useReducer } from 'react';
 import { FloatGenerationType, FloatValueProps } from '../Particles/FloatValueProps';
 import { FloatInputField } from './FloatInputField';
 
-export default function FloatPropsModifier({ floatProps }: { floatProps: FloatValueProps }) {
+const inputCss = "mr-4 pt-1 pb-1"
+
+export default function FloatPropsEditor({ label, floatProps }: { label: string, floatProps: FloatValueProps }) {
     const forceUpdate = useReducer(x => x + 1, 0)[1];
 
     const update = (patch: Partial<FloatValueProps>) => {
@@ -16,52 +18,52 @@ export default function FloatPropsModifier({ floatProps }: { floatProps: FloatVa
         content = (
             <div>
                 <FloatInputField
+                    className={inputCss}
                     label='value'
                     value={floatProps.value}
-                    min={0.0}
                     max={10000.0}
                     onValueChanged={val => { update({ isChanged: true, value: val }) }} />
             </div>);
     }
     else if (floatProps.generationType === FloatGenerationType.RandomRange) {
         content = (
-            <div>
+            <div className="flex">
                 <FloatInputField
-                    label='Value1'
+                    className={inputCss}
+                    label='value1'
                     value={floatProps.value}
-                    min={0.0}
                     max={10000.0}
                     onValueChanged={val => { update({ isChanged: true, value: val }) }}
                 />
                 <FloatInputField
-                    label='Value2'
+                    className={inputCss}
+                    label='value2'
                     value={floatProps.value1}
-                    min={0.0}
                     max={10000.0}
                     onValueChanged={val => { update({ isChanged: true, value1: val }) }}
                 />
             </div>);
     } else {
         content = (
-            <div>
+            <div className='flex flex-wrap'>
                 <FloatInputField
-                    label='Value1'
+                    className={inputCss}
+                    label='value1'
                     value={floatProps.value}
-                    min={0.0}
                     max={10000.0}
                     onValueChanged={val => { update({ isChanged: true, value: val }) }}
                 />
                 <FloatInputField
-                    label='Value2'
+                    className={inputCss}
+                    label='value2'
                     value={floatProps.value1}
-                    min={0.0}
                     max={10000.0}
                     onValueChanged={val => { update({ isChanged: true, value1: val }) }}
                 />
                 <FloatInputField
-                    label='Probability'
+                    className={inputCss}
+                    label='probability'
                     value={floatProps.probability}
-                    min={0.0}
                     max={1.0}
                     onValueChanged={val => { update({ isChanged: true, probability: val }) }}
                 />
@@ -75,11 +77,12 @@ export default function FloatPropsModifier({ floatProps }: { floatProps: FloatVa
 
     return (
         <>
-            <label className="pr-2">Generation Type:</label>
-            <select className="bg-emerald-200" value={floatProps.generationType} onChange={SelectionChanged}>
+            <label className='mr-3 font-bold'>{label}:</label>
+            <label className="mr-1">mode</label>
+            <select className="bg-emerald-200 w-35" value={floatProps.generationType} onChange={SelectionChanged}>
                 <option value={FloatGenerationType.Constant}>Constant</option>
-                <option value={FloatGenerationType.RandomRange}>Random Range</option>
-                <option value={FloatGenerationType.BetweenTwoConstants}>Between Two Constants</option>
+                <option value={FloatGenerationType.RandomRange}>Range</option>
+                <option value={FloatGenerationType.BetweenTwoConstants}>Two Constants</option>
             </select>
             {content}
         </>

@@ -1,12 +1,16 @@
 import { useState } from "react";
+import clsx from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function IntInputField({
+    className = "",
     label,
     value,
     min,
     max,
     onValueChanged
 }: {
+    className?:string
     label: string
     value: number;
     min: number;
@@ -28,9 +32,9 @@ export function IntInputField({
     };
 
     return (
-        <div className="flex pt-3 pb-3">
-            <h1 className="pr-2">{label}</h1>
-            <input className="bg-green-300 w-30"
+        <div className={twMerge(clsx("flex", className))}>
+            <h1 className="mr-1">{label}</h1>
+            <input className="bg-green-300 w-20"
                 type="number"
                 step="1"
                 value={localValue}

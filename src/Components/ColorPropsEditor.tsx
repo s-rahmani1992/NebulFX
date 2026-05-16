@@ -3,7 +3,9 @@ import { ColorGenerationMode, ColorValueProps } from '../Particles/ColorValuePro
 import { ColorInputField } from './ColorInputField';
 import { FloatInputField } from './FloatInputField';
 
-export default function ColorPropsModifier({ colorProps }: { colorProps: ColorValueProps }) {
+const inputCss = "mr-4 pt-1 pb-1"
+
+export default function ColorPropsEditor({ label, colorProps }: { label:string; colorProps: ColorValueProps }) {
     const forceUpdate = useReducer(x => x + 1, 0)[1];
 
     const update = (patch: Partial<ColorValueProps>) => {
@@ -17,6 +19,7 @@ export default function ColorPropsModifier({ colorProps }: { colorProps: ColorVa
         content = (
             <div>
                 <ColorInputField
+                    className={inputCss}
                     label='Color'
                     color={colorProps.color}
                     onChanged={c=>{update({isChanged:true, color: c})}}/>
@@ -24,33 +27,38 @@ export default function ColorPropsModifier({ colorProps }: { colorProps: ColorVa
     }
     else if (colorProps.generationMode === ColorGenerationMode.Range) {
         content = (
-            <div>
+            <div className='flex flex-wrap'>
                 <ColorInputField
-                    label='Color1'
+                    className={inputCss}
+                    label='color1'
                     color={colorProps.color}
                     onChanged={c=>{update({isChanged:true, color: c})}}
                 />
                 <ColorInputField
-                    label='Color2'
+                    className={inputCss}
+                    label='color2'
                     color={colorProps.color1}
                     onChanged={c=>{update({isChanged:true, color1: c})}}
                 />
             </div>);
     } else {
         content = (
-            <div>
+            <div className='flex flex-wrap'>
                 <ColorInputField
-                    label='Color1'
+                    className={inputCss}
+                    label='color1'
                     color={colorProps.color}
                     onChanged={c=>{update({isChanged:true, color: c})}}
                 />
                 <ColorInputField
-                    label='Color2'
+                    className={inputCss}
+                    label='color2'
                     color={colorProps.color1}
                     onChanged={c=>{update({isChanged:true, color1: c})}}
                 />
                 <FloatInputField
-                    label='Probability'
+                    className={inputCss}
+                    label='probability'
                     value={colorProps.probability}
                     min={0.0}
                     max={1.0}
@@ -66,11 +74,12 @@ export default function ColorPropsModifier({ colorProps }: { colorProps: ColorVa
 
     return (
         <>
-            <label className="pr-2">Generation Type:</label>
-            <select className="bg-emerald-200" value={colorProps.generationMode} onChange={SelectionChanged}>
+            <label className='mr-3 font-bold'>{label}:</label>
+            <label className="mr-1">mode</label>
+            <select className="bg-emerald-200 w-35" value={colorProps.generationMode} onChange={SelectionChanged}>
                 <option value={ColorGenerationMode.Constant}>Constant</option>
-                <option value={ColorGenerationMode.Range}>Random Range</option>
-                <option value={ColorGenerationMode.BetweenTwoConstants}>Between Two Constants</option>
+                <option value={ColorGenerationMode.Range}>Range</option>
+                <option value={ColorGenerationMode.BetweenTwoConstants}>Two Constants</option>
             </select>
             {content}
         </>

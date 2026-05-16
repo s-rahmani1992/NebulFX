@@ -4,6 +4,8 @@ import { FloatInputField } from './FloatInputField';
 import { IntGenerationType, IntValueProps, type Emitter } from '../Particles/Emitter';
 import { IntInputField } from './IntValueField';
 
+const inputCss = "mr-4 pt-1 pb-1"
+
 export default function EmitterPropsEditor({ emitter }: { emitter: Emitter }) {
     const forceUpdate = useReducer(x => x + 1, 0)[1];
 
@@ -18,6 +20,7 @@ export default function EmitterPropsEditor({ emitter }: { emitter: Emitter }) {
         spawnContent = (
             <div>
                 <IntInputField
+                    className={inputCss}
                     label='value'
                     value={emitter.spawnRate.value}
                     min={1}
@@ -27,8 +30,9 @@ export default function EmitterPropsEditor({ emitter }: { emitter: Emitter }) {
     }
     else if (emitter.spawnRate.generationType === IntGenerationType.RandomRange) {
         spawnContent = (
-            <div>
+            <div className='flex flex-wrap'>
                 <IntInputField
+                    className={inputCss}
                     label='Value1'
                     value={emitter.spawnRate.value}
                     min={1}
@@ -36,6 +40,7 @@ export default function EmitterPropsEditor({ emitter }: { emitter: Emitter }) {
                     onValueChanged={val => { update({ value: val }) }}
                 />
                 <IntInputField
+                    className={inputCss}
                     label='Value2'
                     value={emitter.spawnRate.value1}
                     min={1}
@@ -45,8 +50,9 @@ export default function EmitterPropsEditor({ emitter }: { emitter: Emitter }) {
             </div>);
     } else {
         spawnContent = (
-            <div>
+            <div className='flex flex-wrap'>
                 <IntInputField
+                    className={inputCss}
                     label='Value1'
                     value={emitter.spawnRate.value}
                     min={1}
@@ -54,6 +60,7 @@ export default function EmitterPropsEditor({ emitter }: { emitter: Emitter }) {
                     onValueChanged={val => { update({ value: val }) }}
                 />
                 <IntInputField
+                    className={inputCss}
                     label='Value2'
                     value={emitter.spawnRate.value1}
                     min={1}
@@ -61,6 +68,7 @@ export default function EmitterPropsEditor({ emitter }: { emitter: Emitter }) {
                     onValueChanged={val => { update({ value1: val }) }}
                 />
                 <FloatInputField
+                    className={inputCss}
                     label='Probability'
                     value={emitter.spawnRate.probability}
                     min={0.0}
@@ -77,11 +85,12 @@ export default function EmitterPropsEditor({ emitter }: { emitter: Emitter }) {
 
     return (
         <>
-            <label className="pr-2">Generation Type:</label>
-            <select className="bg-emerald-200" value={emitter.spawnRate.generationType} onChange={SelectionChanged}>
+            <label className='mr-3 font-bold'>Spawn Rate</label>
+            <label className="mr-1">mode</label>
+            <select className="bg-emerald-200 w-35" value={emitter.spawnRate.generationType} onChange={SelectionChanged}>
                 <option value={FloatGenerationType.Constant}>Constant</option>
-                <option value={FloatGenerationType.RandomRange}>Random Range</option>
-                <option value={FloatGenerationType.BetweenTwoConstants}>Between Two Constants</option>
+                <option value={FloatGenerationType.RandomRange}>Range</option>
+                <option value={FloatGenerationType.BetweenTwoConstants}>Two Constants</option>
             </select>
             {spawnContent}
         </>

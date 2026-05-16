@@ -1,15 +1,19 @@
 import { useState } from "react";
+import clsx from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function FloatInputField({
+    className="",
     label,
     value,
-    min,
+    min = 0.0,
     max,
-    onValueChanged
+    onValueChanged,
 }: {
+    className?: string;
     label: string
     value: number;
-    min: number;
+    min?: number;
     max: number;
     onValueChanged: (v: number) => void;
 }) {
@@ -28,9 +32,9 @@ export function FloatInputField({
     };
 
     return (
-        <div className="flex pt-3 pb-3">
-            <h1 className="pr-2">{label}</h1>
-            <input className="bg-green-300 w-30"
+        <div className={twMerge(clsx("flex", className))}>
+            <h1 className="mr-1">{label}</h1>
+            <input className="bg-green-300 w-20"
                 type="number"
                 step="0.001"
                 value={localValue}
