@@ -88,7 +88,7 @@ fn cs_main(@builtin(global_invocation_id) id: vec3<u32>) {
         particles[index].age = 0.0;
         particles[index].lifeTime = 1.0; 
         particles[index].position = vec2f(0.0, 0.0);
-        var radious = RandomRange(&seed, 0.2, 0.8);
+        var radious = RandomRange(&seed, 4.0, 6.0);
         var angle = RandomRange(&seed, 0.0, 6.28318530718); // 0 to 2*PI
         particles[index].velocity = radious * vec2f(cos(angle), sin(angle)); // Random velocity
         particles[index].color = GenerateColor(startColor, &seed);

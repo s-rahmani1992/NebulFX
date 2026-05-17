@@ -63,6 +63,17 @@ export default class WebGPUParticleEngine extends ParticleEngine {
             format: format,
             alphaMode: "opaque",
         });
+
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.clientWidth * dpr;
+        const h = canvas.clientHeight * dpr;
+
+        if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+        }
+
+        this.camera.SetProjectionParameters(w, h);
         return true;
     }
 
@@ -71,6 +82,8 @@ export default class WebGPUParticleEngine extends ParticleEngine {
 
         await this.UpdateFloatPropsBuffer(this.properties.startSize, this.m_startSizeBuffer);
         await this.UpdateColorPropsBuffer(this.properties.startColor, this.m_startColorBuffer)
+        this.m_gpuDevice.queue.writeBuffer(this.m_cameraBuffer, 0, this.camera.GetMatrix() as Float32Array, 0)
+        
         this.m_frameData.deltaTime = deltaTime;
         this.m_frameData.seed = performance.now() / 1000;
         this.m_gpuDevice.queue.writeBuffer(this.m_frameDataBuffer, 0, new Float32Array([
@@ -81,7 +94,6 @@ export default class WebGPUParticleEngine extends ParticleEngine {
 
         let particlesTospawn = this.properties.emitter.Spawn(deltaTime);
         
-        console.log(particlesTospawn);
         if (particlesTospawn > 0) {
             const commandEncoder = this.m_gpuDevice.createCommandEncoder();
             const computePass = commandEncoder.beginComputePass();
@@ -307,6 +319,10 @@ export default class WebGPUParticleEngine extends ParticleEngine {
                     binding: 0,
                     resource: { buffer: this.m_particleBuffer },
                 },
+                {
+                    binding: 1,
+                    resource: {buffer:this.m_cameraBuffer}
+                }
             ],
         });
 
@@ -363,10 +379,10 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     async CreateParticleBuffers():Promise<void> {
         // Create a simple quad for particle rendering
         const vertices: Vertex2D[] = [
-            new Vertex2D(new Vector2(-1.0, -1.0), new Vector2(0, 0)),
-            new Vertex2D(new Vector2(1.0, -1.0), new Vector2(1, 0)),
-            new Vertex2D(new Vector2(1.0, 1.0), new Vector2(1, 1)),
-            new Vertex2D(new Vector2(-1.0, 1.0), new Vector2(0, 1)),
+            new Vertex2D(new Vector2(-0.5, -0.5), new Vector2(0, 0)),
+            new Vertex2D(new Vector2(0.5, -0.5), new Vector2(1, 0)),
+            new Vertex2D(new Vector2(0.5, 0.5), new Vector2(1, 1)),
+            new Vertex2D(new Vector2(-0.5, 0.5), new Vector2(0, 1)),
         ];
 
         const indices = [0, 1, 2, 0, 2, 3];
@@ -404,6 +420,11 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         })
 
         this.m_startColorBuffer = this.m_gpuDevice.createBuffer({
+            size : 64,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        })
+
+        this.m_cameraBuffer = this.m_gpuDevice.createBuffer({
             size : 64,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         })
@@ -488,4 +509,6 @@ export default class WebGPUParticleEngine extends ParticleEngine {
 
     private m_startSizeBuffer!: GPUBuffer;
     private m_startColorBuffer!: GPUBuffer;
+
+    private m_cameraBuffer!: GPUBuffer;
 }

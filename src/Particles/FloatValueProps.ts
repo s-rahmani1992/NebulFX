@@ -11,8 +11,8 @@ export { FloatGenerationType };
 
 export class FloatValueProps{
     public generationType: FloatGenerationType = FloatGenerationType.Constant;
-    public value : number = 0.1;
-    public value1 : number = 0.4;
+    public value : number = 1.0;
+    public value1 : number = 1.5;
     public probability : number = 0.5;
     public isChanged: boolean = true;
 }

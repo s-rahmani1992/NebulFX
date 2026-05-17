@@ -12,6 +12,7 @@ struct VertexOutput {
 }
 
 @group(0) @binding(0) var<storage, read> particles : array<ParticleData>;
+@group(0) @binding(1) var<uniform> camera : mat4x4<f32>;
 
 @vertex
 fn vs_main(input : VertexInput) -> VertexOutput {
@@ -23,6 +24,7 @@ fn vs_main(input : VertexInput) -> VertexOutput {
         w = 1.0;
     }
     output.position = vec4f(particle.scale * input.position + particle.position, 0.0, w);
+    output.position = camera * output.position;
     output.uv = input.uv;
     output.instanceIndex = input.instanceIndex;
     return output;

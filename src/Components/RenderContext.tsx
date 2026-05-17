@@ -73,11 +73,9 @@ export default function RenderContext({ simulator }: { simulator: ParticleSimula
   }, [engine]);
     
   return (
-    <canvas className="border-2 border-gray-300 rounded-lg shadow-lg"
+    <canvas className="w-full h-full border-2 border-gray-300 rounded-lg shadow-lg"
       ref={canvasRef}
       id="webgpu-canvas"
-      width={500}
-      height={500}
     />
   )
 }

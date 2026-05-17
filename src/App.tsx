@@ -13,6 +13,7 @@ import ParticlePlayPanel from './Components/ParticlePlayPanel';
 import ParticleStatsPanel from './Components/ParticleStatsPanel';
 import { FloatInputField } from './Components/FloatInputField';
 import EmitterPropsEditor from './Components/EmitterPropsEditor';
+import RenderContextScroller from './Components/RenderContextScroller';
 
 import { ParticleProps } from './Particles/ParticleProperties';
 import { GraphicAPI, ParticleSimulator } from './ParticleSimulator';
@@ -80,10 +81,17 @@ function App() {
         
         {/* Particle Scene and Context Panel */}
         <div className="p-10">
-          <ColorInputField label='Background' color={simulator.engine.clearColor} onChanged={c=>{}} />
-          <ParticlePlayPanel simulator={simulator}/>
-          <RenderContext simulator={simulator} />
-          <ParticleStatsPanel simulator={simulator}/>
+          <ColorInputField label='Background' color={simulator.engine.clearColor} onChanged={c => { }} />
+          <ParticlePlayPanel simulator={simulator} />
+          <ParticleStatsPanel simulator={simulator} />
+          <div className='relative w-100 h-100'>
+            <div className="absolute inset-0">
+              <RenderContext simulator={simulator} />
+            </div>
+            <div className="absolute inset-0">
+              <RenderContextScroller camera={simulator.engine.camera} />
+            </div>
+          </div>
         </div>
       </div>
     </>
