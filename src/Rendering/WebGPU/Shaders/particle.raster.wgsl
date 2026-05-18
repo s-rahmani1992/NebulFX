@@ -13,6 +13,8 @@ struct VertexOutput {
 
 @group(0) @binding(0) var<storage, read> particles : array<ParticleData>;
 @group(0) @binding(1) var<uniform> camera : mat4x4<f32>;
+@group(0) @binding(2) var Sampler: sampler;
+@group(0) @binding(3) var particleTexture: texture_2d<f32>;
 
 @vertex
 fn vs_main(input : VertexInput) -> VertexOutput {
@@ -33,5 +35,6 @@ fn vs_main(input : VertexInput) -> VertexOutput {
 @fragment
 fn fs_main(input : VertexOutput) -> @location(0) vec4f {
     var particle = particles[input.instanceIndex];
-    return particle.color;
+    var texColor = textureSample(particleTexture, Sampler, input.uv);
+    return texColor * particle.color;
 }

@@ -39,6 +39,11 @@ export default class WebGPUParticleEngine extends ParticleEngine {
             return false;
         }
 
+        success = await this.LoadTextures(error);
+        if (!success) {
+            return false;
+        }
+
         await this.CreateParticleBuffers();
         
         await this.ResetBuffers();
@@ -322,6 +327,14 @@ export default class WebGPUParticleEngine extends ParticleEngine {
                 {
                     binding: 1,
                     resource: {buffer:this.m_cameraBuffer}
+                },
+                {
+                    binding: 2,
+                    resource: this.m_sampler,
+                },
+                {
+                    binding: 3,
+                    resource: this.m_particleTexture.createView(),
                 }
             ],
         });
@@ -484,6 +497,37 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         await this.m_gpuDevice.queue.onSubmittedWorkDone();
     }
 
+    async LoadTextures(error: { message: string }): Promise<boolean>{
+        const res = await fetch("/assets/textures/circle.png")
+
+        if(!res){
+            error.message = "failed loading image file";
+            return false;
+        }
+
+        const imageData = await res.blob();
+
+        const imageBitmap = await createImageBitmap(imageData);
+        const imageSize = {width: imageBitmap.width, height: imageBitmap.height};
+
+        this.m_particleTexture = this.m_gpuDevice.createTexture({
+            size: imageSize,
+            format: "rgba8unorm",
+            usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+        })
+
+        this.m_gpuDevice.queue.copyExternalImageToTexture({source:imageBitmap}, {texture: this.m_particleTexture}, imageSize );
+
+        await this.m_gpuDevice.queue.onSubmittedWorkDone();
+
+        this.m_sampler = this.m_gpuDevice.createSampler({
+            minFilter: "linear",
+            magFilter: "linear",
+        })
+
+        return true;
+    }
+
     private m_gpuAdapter!: GPUAdapter | null;
     private m_gpuDevice!: GPUDevice;
     private m_gpuContext!: GPUCanvasContext;
@@ -511,4 +555,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     private m_startColorBuffer!: GPUBuffer;
 
     private m_cameraBuffer!: GPUBuffer;
+
+    private m_particleTexture!: GPUTexture;
+    private m_sampler!: GPUSampler;
 }
