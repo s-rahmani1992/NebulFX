@@ -54,10 +54,6 @@ function App() {
 
   return (
     <>
-      <div>
-        <h1 className="text-4xl text-center font-bold mt-10">NebulFX</h1>
-        <h2 className="text-2xl text-center text-gray-800">version: {packageJson.version}</h2>
-      </div>
       <div className="flex flex-row h-screen justify-center gap-10">
         {/* Particle Properties Panel */}
         <div className="overflow-x-hidden overflow-y-auto p-2 min-w-100 w-100 m-10 rounded-2xl border-2 bg-cyan-900">
@@ -81,7 +77,7 @@ function App() {
         
         {/* Particle Scene and Context Panel */}
         <div className="p-10">
-          <ColorInputField label='Background' color={simulator.engine.clearColor} onChanged={c => { }} />
+          <ColorInputField label='Background' color={simulator.engine.clearColor} onChanged={() => { }} />
           <ParticlePlayPanel simulator={simulator} />
           <ParticleStatsPanel simulator={simulator} />
           <div className='relative w-100 h-100'>
@@ -93,6 +89,9 @@ function App() {
             </div>
           </div>
         </div>
+      </div>
+      <div>
+        <h2 className="text-2xl text-center text-gray-800">version: {packageJson.version}</h2>
       </div>
     </>
   )

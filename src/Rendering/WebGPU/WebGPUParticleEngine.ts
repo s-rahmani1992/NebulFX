@@ -498,7 +498,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     }
 
     async LoadTextures(error: { message: string }): Promise<boolean>{
-        const res = await fetch("/assets/textures/circle.png")
+        const res = await fetch("./assets/textures/circle.png")
 
         if(!res){
             error.message = "failed loading image file";
