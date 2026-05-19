@@ -72,6 +72,8 @@ fn GenerateColor(props: ColorValueProps, seed: ptr<function, u32>) -> vec4f {
 
 @group(1) @binding(0) var<uniform> startSize : FloatValueProps;
 @group(1) @binding(1) var<uniform> startColor : ColorValueProps;
+@group(1) @binding(2) var<uniform> startLifetime : FloatValueProps;
+@group(1) @binding(3) var<uniform> startSpeed : FloatValueProps;
 
 @compute @workgroup_size(64)
 fn cs_main(@builtin(global_invocation_id) id: vec3<u32>) {
@@ -86,9 +88,9 @@ fn cs_main(@builtin(global_invocation_id) id: vec3<u32>) {
         
         particles[index].state = 2u;
         particles[index].age = 0.0;
-        particles[index].lifeTime = 1.0; 
+        particles[index].lifeTime = GenerateValue(startLifetime, &seed);; 
         particles[index].position = vec2f(0.0, 0.0);
-        var radious = RandomRange(&seed, 4.0, 6.0);
+        var radious = GenerateValue(startSpeed, &seed);
         var angle = RandomRange(&seed, 0.0, 6.28318530718); // 0 to 2*PI
         particles[index].velocity = radious * vec2f(cos(angle), sin(angle)); // Random velocity
         particles[index].color = GenerateColor(startColor, &seed);

@@ -87,6 +87,8 @@ export default class WebGPUParticleEngine extends ParticleEngine {
 
         await this.UpdateFloatPropsBuffer(this.properties.startSize, this.m_startSizeBuffer);
         await this.UpdateColorPropsBuffer(this.properties.startColor, this.m_startColorBuffer)
+        await this.UpdateFloatPropsBuffer(this.properties.startLifetime, this.m_startLifetimeBuffer);
+        await this.UpdateFloatPropsBuffer(this.properties.startSpeed, this.m_startspeedBuffer);
         this.m_gpuDevice.queue.writeBuffer(this.m_cameraBuffer, 0, this.camera.GetMatrix() as Float32Array, 0)
         
         this.m_frameData.deltaTime = deltaTime;
@@ -385,7 +387,15 @@ export default class WebGPUParticleEngine extends ParticleEngine {
             {
                 name:"startColor",
                 buffer:this.m_startColorBuffer
-            }
+            },
+            {
+                name:"startLifetime",
+                buffer:this.m_startLifetimeBuffer
+            },
+            {
+                name:"startSpeed",
+                buffer:this.m_startspeedBuffer
+            },
         ]);
     }
 
@@ -437,6 +447,16 @@ export default class WebGPUParticleEngine extends ParticleEngine {
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         })
 
+        this.m_startLifetimeBuffer = this.m_gpuDevice.createBuffer({
+            size : 64,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        })
+
+        this.m_startspeedBuffer = this.m_gpuDevice.createBuffer({
+            size : 64,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        })
+
         this.m_cameraBuffer = this.m_gpuDevice.createBuffer({
             size : 64,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -468,7 +488,6 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         if(!colorProps.isChanged)
             return;
 
-        console.log(colorProps);
         const data = new ArrayBuffer(64);
         const view = new DataView(data);
         this.WriteColorToView(colorProps.color, view, 0);
@@ -553,6 +572,8 @@ export default class WebGPUParticleEngine extends ParticleEngine {
 
     private m_startSizeBuffer!: GPUBuffer;
     private m_startColorBuffer!: GPUBuffer;
+    private m_startLifetimeBuffer!: GPUBuffer;
+    private m_startspeedBuffer!: GPUBuffer;
 
     private m_cameraBuffer!: GPUBuffer;
 
