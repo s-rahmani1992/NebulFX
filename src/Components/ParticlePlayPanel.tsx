@@ -24,12 +24,10 @@ export default function ParticlePlayPanel({ simulator }: { simulator: ParticleSi
                 className= {buttonStyle}
             >Pause</button>
             <button
-                //disabled={!simulator.isPlaying}
                 onClick={() => { update({ isStopFlag: true, isPlaying: false }) }}
                 className= {buttonStyle}
             >Stop</button>
             <button
-                //disabled={!simulator.isPlaying}
                 onClick={() => { update({ isStopFlag: true, isPlaying: true }) }}
                 className= {buttonStyle}
             >Restart</button>

@@ -112,7 +112,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
 
         let commandEncoder = this.m_gpuDevice.createCommandEncoder();
         const computePass = commandEncoder.beginComputePass();
-        this.m_updateComputePipeline.Execute(computePass, Math.ceil(this.maxParticles));
+        this.m_updateComputePipeline.Execute(computePass, Math.ceil(this.properties.maxParticles));
         computePass.end();
         this.m_gpuDevice.queue.submit([commandEncoder.finish()]);
         await this.m_gpuDevice.queue.onSubmittedWorkDone();
@@ -142,7 +142,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         pass.setVertexBuffer(0, this.m_particleVertexBuffer);
         pass.setIndexBuffer(this.m_particleIndexBuffer, "uint16");
         pass.setBindGroup(0, this.m_particleBindGroup);
-        pass.drawIndexed(6, this.maxParticles, 0, 0, 0);
+        pass.drawIndexed(6, this.properties.maxParticles, 0, 0, 0);
 
         pass.end();
         this.m_gpuDevice.queue.submit([commandEncoder.finish()]);
@@ -189,16 +189,16 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     }
 
     async ChangeMaxParticles(count: number): Promise<void> {
-        this.maxParticles = count;
+        this.properties.maxParticles = count;
         this.m_particleBuffer.destroy();
         this.m_particleBuffer = this.m_gpuDevice.createBuffer({
-            size: this.maxParticles * ParticleData.SizeInBytes,
+            size: this.properties.maxParticles * ParticleData.SizeInBytes,
             usage: GPUBufferUsage.STORAGE,
         });
 
         this.m_freeIndicesBuffer.destroy();
         this.m_freeIndicesBuffer = this.m_gpuDevice.createBuffer({
-            size: this.maxParticles * 4,
+            size: this.properties.maxParticles * 4,
             usage: GPUBufferUsage.STORAGE,
         });
 
@@ -423,12 +423,12 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         this.m_gpuDevice.queue.writeBuffer(this.m_particleIndexBuffer, 0, new Uint16Array(indices));
 
         this.m_particleBuffer = this.m_gpuDevice.createBuffer({
-            size: this.maxParticles * ParticleData.SizeInBytes,
+            size: this.properties.maxParticles * ParticleData.SizeInBytes,
             usage: GPUBufferUsage.STORAGE,
         });
 
         this.m_freeIndicesBuffer = this.m_gpuDevice.createBuffer({
-            size: this.maxParticles * 4,
+            size: this.properties.maxParticles * 4,
             usage: GPUBufferUsage.STORAGE,
         });
 
@@ -510,7 +510,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     async ResetBuffers():Promise<void>{
         const commandEncoder = this.m_gpuDevice.createCommandEncoder();
         const computePass = commandEncoder.beginComputePass();
-        this.m_resetComputePipeline.Execute(computePass, Math.ceil(this.maxParticles));
+        this.m_resetComputePipeline.Execute(computePass, Math.ceil(this.properties.maxParticles));
         computePass.end();
         this.m_gpuDevice.queue.submit([commandEncoder.finish()]);
         await this.m_gpuDevice.queue.onSubmittedWorkDone();

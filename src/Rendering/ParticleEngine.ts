@@ -12,6 +12,5 @@ export default abstract class ParticleEngine{
 
     public clearColor: { r: number; g: number; b: number; a: number } = { r: 0, g: 0, b: 0, a: 1 };
     public properties: ParticleProps = new ParticleProps();
-    public maxParticles: number = 1024;
     public camera: Camera2D = new Camera2D()
 }

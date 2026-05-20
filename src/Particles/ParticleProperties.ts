@@ -3,6 +3,7 @@ import { Emitter } from "./Emitter";
 import { FloatValueProps } from "./FloatValueProps";
 
 export class ParticleProps{
+    public maxParticles: number = 1024;
     public startSize: FloatValueProps = new FloatValueProps();
     public startColor: ColorValueProps = new ColorValueProps();
     public startLifetime : FloatValueProps = new FloatValueProps();

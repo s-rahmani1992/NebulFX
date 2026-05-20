@@ -46,4 +46,14 @@ export class Emitter{
     Reset():void{
         this.m_totalParticlesSpawned = 0.0;
     }
+
+    static FromJSON(json: any) : Emitter{
+        const e = new Emitter();
+        Object.assign(e, json);
+
+        // Rehydrate nested classes too
+        e.spawnRate = Object.assign(new IntValueProps(), json.spawnRate);
+        e.m_totalParticlesSpawned = 0.0;
+        return e;
+    }
 }
