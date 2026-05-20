@@ -24,10 +24,10 @@ const sectionTitleCSS = "mb-1 text-center text-2xl font-bold"
 function App() {
   const [simulator, SetSimulator] = useState<ParticleSimulator | null>(null)
   let particlePropertiesRef = useRef<ParticleProps>(null);
+  let backgroundColorRef = useRef<{ r: number; g: number; b: number; a: number }>({ r: 0, g: 0, b: 0, a: 1 });
 
   if (!particlePropertiesRef.current) {
-    let [p] = LoadUserData();
-    particlePropertiesRef.current = p;
+    [particlePropertiesRef.current, backgroundColorRef.current] = LoadUserData();
   }
 
   const error = { message: "" };
@@ -43,6 +43,7 @@ function App() {
       if (mounted && ok) {
         console.log("simulator initialized")
         particleSim.engine.properties = particlePropertiesRef.current!;
+        particleSim.engine.clearColor = backgroundColorRef.current;
         particleSim.maxParticleFlag = particlePropertiesRef.current!.maxParticles;
         SetSimulator(particleSim);
       }
@@ -54,6 +55,21 @@ function App() {
     };
   }, []);
 
+  useEffect(() => { //TODO right now, the user data is saved every one second. it should be changed to be saved whenever the browser is closed
+    const id = setInterval(() => {
+      if (!simulator) {
+        return;
+      }
+      const userObj: any = {};
+      userObj["properties"] = simulator.engine.properties;
+      const contextObj : any = {};
+      contextObj["bg-color"] = simulator.engine.clearColor;
+      userObj["context"] = contextObj;
+      localStorage.setItem("userData", JSON.stringify(userObj));
+    }, 1000); // 1 second
+
+    return () => clearInterval(id);
+  }, [simulator]);
 
   if (!simulator) return <h1>Not Initialized {error.message}</h1>;
 
@@ -97,16 +113,6 @@ function App() {
               <RenderContextScroller camera={simulator.engine.camera} />
             </div>
           </div>
-          <div className='flex justify-center'>
-            <button
-              onClick={() => {
-                const userObj: any = {};
-                userObj["properties"] = simulator.engine.properties;
-                localStorage.setItem("userData", JSON.stringify(userObj));
-              }}
-              className='text-3xl px-8 py-1 m-1 rounded text-white bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-60'
-            >Save</button>
-          </div>
         </div>
       </div>
       <div>
@@ -118,11 +124,11 @@ function App() {
 
 export default App
 
-function LoadUserData(): [ParticleProps] {
+function LoadUserData(): [ParticleProps, { r: number; g: number; b: number; a: number }] {
   const saved = localStorage.getItem("userData");
   if (!saved) {
     console.warn("save not found");
-    return [new ParticleProps()];
+    return [new ParticleProps(), { r: 0, g: 0, b: 0, a: 1 }];
   }
 
   let savedObj;
@@ -130,7 +136,7 @@ function LoadUserData(): [ParticleProps] {
     savedObj = JSON.parse(saved);
   }
   catch (e) {
-    return [new ParticleProps()];
+    return [new ParticleProps(), { r: 0, g: 0, b: 0, a: 1 }];
   }
 
   // Particle Properties
@@ -149,5 +155,15 @@ function LoadUserData(): [ParticleProps] {
     properties = new ParticleProps();
   }
 
-  return [properties];
+  let bgColor : { r: number; g: number; b: number; a: number };
+
+  try {
+    const contextJson = savedObj["context"];
+    bgColor = contextJson["bg-color"] as { r: number; g: number; b: number; a: number };
+  }
+  catch (e) {
+    bgColor = { r: 0, g: 1, b: 0, a: 1 };
+  }
+
+  return [properties, bgColor];
 }
