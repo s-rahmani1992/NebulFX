@@ -18,6 +18,7 @@ import RenderContextScroller from './Components/RenderContextScroller';
 import { ParticleProps } from './Particles/ParticleProperties';
 import { GraphicAPI, ParticleSimulator } from './ParticleSimulator';
 import { Emitter } from './Particles/Emitter';
+import { IntInputField } from './Components/IntValueField';
 
 const sectionTitleCSS = "mb-1 text-center text-2xl font-bold"
 
@@ -71,16 +72,22 @@ function App() {
     return () => clearInterval(id);
   }, [simulator]);
 
-  if (!simulator) return <h1>Not Initialized {error.message}</h1>;
+  if (!simulator) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-700">
+        <h1 className="text-2xl text-white">Loading...</h1>
+      </div>
+      )
+  }
 
   return (
     <>
-      <div className="flex flex-row h-150 justify-center gap-10">
+      <div className="flex flex-row h-150 min-w-250 w-screen m-5 justify-center gap-1">
         {/* Particle Properties Panel */}
-        <div className="overflow-x-hidden overflow-y-auto p-2 min-w-100 w-100 m-10 rounded-2xl border-2 bg-cyan-900">
+        <div className="overflow-x-hidden overflow-y-auto h-full min-w-100 w-100 p-2 m-2 rounded-2xl border-2 bg-cyan-900">
           <div className="mb-2 pr-2 pl-2 pt-1 pb-2 bg-emerald-100 rounded-2xl">
             <h2 className={sectionTitleCSS} >General Settings</h2>
-            <FloatInputField label='Maximum Particles' min={1} max={1000000} value={particlePropertiesRef.current.maxParticles} onValueChanged={value => {
+            <IntInputField label='Maximum Particles' min={1} max={1000000} value={particlePropertiesRef.current.maxParticles} onValueChanged={value => {
               simulator.maxParticleFlag = value;
             }} />
             <ColorInputField className='mt-1' label='Background' color={simulator.engine.clearColor} onChanged={() => { }} />
@@ -102,10 +109,11 @@ function App() {
         </div>
 
         {/* Particle Scene and Context Panel */}
-        <div className="p-10">
+        <div className="m-2 h-full w-100 flex flex-col">
           <ParticlePlayPanel simulator={simulator} />
           <ParticleStatsPanel simulator={simulator} />
-          <div className='relative w-100 h-100'>
+
+          <div className="relative flex-1">
             <div className="absolute inset-0">
               <RenderContext simulator={simulator} />
             </div>
