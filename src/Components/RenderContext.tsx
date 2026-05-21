@@ -43,19 +43,14 @@ export default function RenderContext({ simulator }: { simulator: ParticleSimula
           await engine.Stop();
         }
 
-        if (!simulator.isPlaying) {
-          
-          lastFrameTimeRef.current = performance.now();
-          requestAnimationFrame(Render);
-          return;
-        }
-
         while (performance.now() - lastFrameTimeRef.current < frameDuration) { }
 
         dt = (performance.now() - lastFrameTimeRef.current) / 1000;
         lastFrameTimeRef.current = performance.now();
 
-        await engine.Update(dt);
+        if(simulator.isPlaying){
+          await engine.Update(dt);
+        }
         await engine.Render();
         requestAnimationFrame(Render);
       }

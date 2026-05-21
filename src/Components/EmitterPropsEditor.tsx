@@ -24,7 +24,7 @@ export default function EmitterPropsEditor({ emitter }: { emitter: Emitter }) {
                     label='value'
                     value={emitter.spawnRate.value}
                     min={1}
-                    max={10000}
+                    max={1000000}
                     onValueChanged={val => { update({ value: val }) }} />
             </div>);
     }
@@ -36,7 +36,7 @@ export default function EmitterPropsEditor({ emitter }: { emitter: Emitter }) {
                     label='Value1'
                     value={emitter.spawnRate.value}
                     min={1}
-                    max={10000}
+                    max={1000000}
                     onValueChanged={val => { update({ value: val }) }}
                 />
                 <IntInputField
@@ -44,7 +44,7 @@ export default function EmitterPropsEditor({ emitter }: { emitter: Emitter }) {
                     label='Value2'
                     value={emitter.spawnRate.value1}
                     min={1}
-                    max={10000}
+                    max={1000000}
                     onValueChanged={val => { update({ value1: val }) }}
                 />
             </div>);
@@ -56,7 +56,7 @@ export default function EmitterPropsEditor({ emitter }: { emitter: Emitter }) {
                     label='Value1'
                     value={emitter.spawnRate.value}
                     min={1}
-                    max={10000}
+                    max={1000000}
                     onValueChanged={val => { update({ value: val }) }}
                 />
                 <IntInputField
@@ -64,7 +64,7 @@ export default function EmitterPropsEditor({ emitter }: { emitter: Emitter }) {
                     label='Value2'
                     value={emitter.spawnRate.value1}
                     min={1}
-                    max={10000}
+                    max={1000000}
                     onValueChanged={val => { update({ value1: val }) }}
                 />
                 <FloatInputField

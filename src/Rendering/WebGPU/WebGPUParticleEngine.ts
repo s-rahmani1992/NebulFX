@@ -89,7 +89,6 @@ export default class WebGPUParticleEngine extends ParticleEngine {
         await this.UpdateColorPropsBuffer(this.properties.startColor, this.m_startColorBuffer)
         await this.UpdateFloatPropsBuffer(this.properties.startLifetime, this.m_startLifetimeBuffer);
         await this.UpdateFloatPropsBuffer(this.properties.startSpeed, this.m_startspeedBuffer);
-        this.m_gpuDevice.queue.writeBuffer(this.m_cameraBuffer, 0, this.camera.GetMatrix() as Float32Array, 0)
         
         this.m_frameData.deltaTime = deltaTime;
         this.m_frameData.seed = performance.now() / 1000;
@@ -126,7 +125,7 @@ export default class WebGPUParticleEngine extends ParticleEngine {
     }
 
     async Render(): Promise<void> {
-
+        this.m_gpuDevice.queue.writeBuffer(this.m_cameraBuffer, 0, this.camera.GetMatrix() as Float32Array, 0)
         const commandEncoder = this.m_gpuDevice.createCommandEncoder();
         const pass = commandEncoder.beginRenderPass({
             colorAttachments: [

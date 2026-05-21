@@ -11,7 +11,6 @@ import ColorPropsEditor from './Components/ColorPropsEditor';
 import { ColorInputField } from './Components/ColorInputField';
 import ParticlePlayPanel from './Components/ParticlePlayPanel';
 import ParticleStatsPanel from './Components/ParticleStatsPanel';
-import { FloatInputField } from './Components/FloatInputField';
 import EmitterPropsEditor from './Components/EmitterPropsEditor';
 import RenderContextScroller from './Components/RenderContextScroller';
 
